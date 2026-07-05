@@ -1,0 +1,89 @@
+{
+  "institution": "University College of Engineering (Autonomous), Osmania University",
+  "department": "Computer Science and Engineering",
+  "semesters": {
+    "6": {
+      "year": 3,
+      "semester": 6,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "B-210",
+      "effectiveFrom": "2026-01-19",
+      "timeSlots": [
+        "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00",
+        "14:00-15:00", "15:00-16:00", "16:00-17:00"
+      ],
+      "faculty": {
+        "DSK": "Dr. D. Sri Kumar",
+        "LKSK": "Dr. L.K. Suresh Kumar",
+        "PVS": "Prof. P.V. Sudha",
+        "MAH": "Dr. M.A. Hameed",
+        "MNR": "Mr. M. Narendra Reddy",
+        "MVD": "Dr. M. Venkati Dass",
+        "AG": "Dr. A. Gayathri"
+      },
+      "subjects": {
+        "CD": "Compiler Design",
+        "CN": "Computer Networks",
+        "DS": "Distributed Systems",
+        "DL": "Deep Learning",
+        "PE-III": "Human Computer Interaction",
+        "OE-I": "Open Elective-I",
+        "CD Lab": "Compiler Design Lab",
+        "CN Lab": "Computer Networks Lab",
+        "DL Lab": "Deep Learning Lab",
+        "MP": "Mini Project & Summer Internship"
+      },
+      "timetable": {
+        "Monday": [
+          { "start": "10:00", "end": "11:00", "subject": "Deep Learning", "code": "DL", "faculty": "Dr. M.A. Hameed", "facultyCode": "MAH", "type": "Theory" },
+          { "start": "11:00", "end": "12:00", "subject": "Computer Networks", "code": "CN", "faculty": "Dr. L.K. Suresh Kumar", "facultyCode": "LKSK", "type": "Theory" },
+          { "start": "12:00", "end": "13:00", "subject": "Human Computer Interaction", "code": "PE-III", "faculty": "Mr. M. Narendra Reddy", "facultyCode": "MNR", "type": "Theory" },
+          { "start": "14:00", "end": "15:00", "subject": "Open Elective-I", "type": "Theory" },
+          { "start": "15:00", "end": "17:00", "type": "Lab", "labs": [
+            { "subject": "Compiler Design Lab", "batch": "II", "faculty": "Dr. M. Venkati Dass", "facultyCode": "MVD" },
+            { "subject": "Computer Networks Lab", "batch": "IV", "faculty": "Dr. L.K. Suresh Kumar", "facultyCode": "LKSK" },
+            { "subject": "Deep Learning Lab", "batch": "I", "faculty": "Dr. M.A. Hameed", "facultyCode": "MAH" }
+          ]}
+        ],
+        "Tuesday": [
+          { "start": "10:00", "end": "11:00", "subject": "Distributed Systems", "code": "DS", "faculty": "Prof. P.V. Sudha", "facultyCode": "PVS" },
+          { "start": "11:00", "end": "12:00", "subject": "Compiler Design", "code": "CD", "faculty": "Dr. D. Sri Kumar", "facultyCode": "DSK" },
+          { "start": "12:00", "end": "13:00", "subject": "Deep Learning", "code": "DL", "faculty": "Dr. M.A. Hameed", "facultyCode": "MAH" },
+          { "start": "14:00", "end": "15:00", "subject": "Open Elective-I" },
+          { "start": "15:00", "end": "17:00", "type": "Lab", "labs": [
+            { "subject": "Deep Learning Lab", "batch": "III", "faculty": "Dr. M.A. Hameed" },
+            { "subject": "Compiler Design Lab", "batch": "IV", "faculty": "Dr. A. Gayathri" }
+          ]}
+        ],
+        "Wednesday": [
+          { "start": "10:00", "end": "11:00", "subject": "Compiler Design", "code": "CD", "faculty": "Dr. D. Sri Kumar" },
+          { "start": "11:00", "end": "12:00", "subject": "Distributed Systems", "code": "DS", "faculty": "Prof. P.V. Sudha" },
+          { "start": "12:00", "end": "13:00", "subject": "Human Computer Interaction", "code": "PE-III", "faculty": "Mr. M. Narendra Reddy" },
+          { "start": "14:00", "end": "15:00", "subject": "Open Elective-I" },
+          { "start": "15:00", "end": "17:00", "type": "Lab", "labs": [
+            { "subject": "Compiler Design Lab", "batch": "III", "faculty": "Dr. M. Venkati Dass" },
+            { "subject": "Deep Learning Lab", "batch": "II", "faculty": "Dr. M.A. Hameed" },
+            { "subject": "Computer Networks Lab", "batch": "I", "faculty": "Mr. M. Narendra Reddy" }
+          ]}
+        ],
+        "Thursday": [
+          { "start": "09:00", "end": "10:00", "subject": "Compiler Design", "code": "CD", "faculty": "Dr. D. Sri Kumar" },
+          { "start": "10:00", "end": "11:00", "subject": "Computer Networks", "code": "CN", "faculty": "Dr. L.K. Suresh Kumar" },
+          { "start": "11:00", "end": "12:00", "subject": "Deep Learning", "code": "DL", "faculty": "Dr. M.A. Hameed" },
+          { "start": "12:00", "end": "13:00", "subject": "Distributed Systems", "code": "DS", "faculty": "Prof. P.V. Sudha" }
+        ],
+        "Friday": [
+          { "start": "11:00", "end": "12:00", "subject": "Computer Networks", "code": "CN", "faculty": "Dr. L.K. Suresh Kumar" },
+          { "start": "12:00", "end": "13:00", "subject": "Human Computer Interaction", "code": "PE-III", "faculty": "Mr. M. Narendra Reddy" },
+          { "start": "14:00", "end": "16:00", "type": "Lab", "labs": [
+            { "subject": "Compiler Design Lab", "batch": "I", "faculty": "Dr. M. Venkati Dass" },
+            { "subject": "Deep Learning Lab", "batch": "IV", "faculty": "Dr. A. Gayathri" },
+            { "subject": "Computer Networks Lab", "batch": "II", "faculty": "Dr. L.K. Suresh Kumar" },
+            { "subject": "Computer Networks Lab", "batch": "III", "faculty": "Mr. M. Narendra Reddy" }
+          ]}
+        ]
+      }
+    }
+  }
+}

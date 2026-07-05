@@ -1,0 +1,291 @@
+'use client';
+import Shell from '@/components/Shell';
+import BackButton from '@/components/BackButton';
+import { api, API } from '@/lib/api';
+import { useEffect, useState, useRef } from 'react';
+import { useParams } from 'next/navigation';
+import { io } from 'socket.io-client';
+
+const FLOW_STEPS = [
+  { key: 'SCHEDULED', label: 'Ready', icon: '📅', color: 'from-slate-400 to-slate-500' },
+  { key: 'ACTIVE', label: 'Live', icon: '▶️', color: 'from-emerald-500 to-emerald-600' },
+  { key: 'QR_ACTIVE', label: 'QR Active', icon: '📱', color: 'from-violet-500 to-violet-600' },
+  { key: 'ENDED', label: 'Done', icon: '✅', color: 'from-red-400 to-red-500' },
+];
+
+export default function Page() {
+  const { id } = useParams();
+  const [cls, setCls] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrExpiry, setQrExpiry] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [attendanceCount, setAttendanceCount] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      api(`/api/classes/today`).then((classes: any[]) => {
+        const found = classes.find((c: any) => c.id === id);
+        if (found) {
+          setCls(found);
+          if (found.sessions?.length) {
+            setSession(found.sessions[0]);
+            if (found.sessions[0].status === 'ACTIVE' || found.sessions[0].status === 'QR_ACTIVE') {
+              api(`/api/sessions/${found.sessions[0].id}/count`).then((d: any) => setAttendanceCount(d.count));
+            }
+          }
+        }
+      });
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (session?.id && (session.status === 'ACTIVE' || session.status === 'QR_ACTIVE')) {
+      const socket = io(API);
+      socketRef.current = socket;
+      socket.emit('join:session', session.id);
+      socket.on('attendance:count', async () => {
+        const d = await api(`/api/sessions/${session.id}/count`);
+        setAttendanceCount(d.count);
+      });
+      return () => {
+        socket.disconnect();
+        socketRef.current = null;
+      };
+    }
+  }, [session?.id, session?.status]);
+
+  useEffect(() => {
+    if (qrExpiry) {
+      intervalRef.current = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((qrExpiry - Date.now()) / 1000));
+        setCountdown(remaining);
+        if (remaining <= 0) {
+          clearInterval(intervalRef.current!);
+          setQrDataUrl(null);
+          setQrExpiry(null);
+        }
+      }, 1000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [qrExpiry]);
+
+  async function startSession() {
+    setLoading(true);
+    const created = await api(`/api/sessions/${id}/start`, { method: 'POST' });
+    setSession(created);
+    setLoading(false);
+  }
+
+  async function generateQR() {
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const d = await api(`/api/sessions/${session.id}/qr`, {
+        method: 'POST',
+        body: JSON.stringify({
+          teacherLat: pos.coords.latitude,
+          teacherLng: pos.coords.longitude,
+        }),
+      });
+      setQrDataUrl(d.qrDataUrl);
+      setQrExpiry(Date.now() + 5 * 60 * 1000);
+      setLoading(false);
+    }, async () => {
+      const d = await api(`/api/sessions/${session.id}/qr`, { method: 'POST' });
+      setQrDataUrl(d.qrDataUrl);
+      setQrExpiry(Date.now() + 5 * 60 * 1000);
+      setLoading(false);
+    });
+  }
+
+  async function finishSession() {
+    setLoading(true);
+    setQrDataUrl(null);
+    setQrExpiry(null);
+    setCountdown(0);
+    await api(`/api/sessions/${session.id}/end`, { method: 'POST' });
+    setSession({ ...session, status: 'ENDED' });
+    setLoading(false);
+  }
+
+  const status = session?.status || 'SCHEDULED';
+  const statusIndex = FLOW_STEPS.findIndex((s) => s.key === status);
+
+  return (
+    <Shell role="teacher" title="Session Control">
+      <BackButton href="/teacher/today" label="Back to Today's Classes" />
+
+      {cls ? (
+        <div className="mt-6 grid gap-6 max-w-3xl">
+          {/* Class Header */}
+          <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                {cls.code?.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{cls.subject}</h2>
+                <p className="text-slate-600">{cls.code} • Room {cls.timetable?.[0]?.room} • {cls.timetable?.[0]?.startTime} - {cls.timetable?.[0]?.endTime}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Animated Progress Flow */}
+          <div className="card">
+            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-5">Session Progress</h3>
+            <div className="flex items-center justify-between relative">
+              <div className="absolute top-6 left-0 right-0 h-1 bg-slate-200 rounded-full mx-8"></div>
+              <div
+                className="absolute top-6 left-0 h-1 bg-gradient-to-r from-emerald-400 to-violet-500 rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${(statusIndex / (FLOW_STEPS.length - 1)) * 80}%`, marginLeft: '8%' }}
+              ></div>
+              {FLOW_STEPS.map((step, i) => {
+                const isActive = i <= statusIndex;
+                const isCurrent = i === statusIndex;
+                return (
+                  <div key={i} className="relative flex flex-col items-center z-10" style={{ animation: `stepIn 0.5s ease-out ${i * 200}ms both` }}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all duration-500 ${
+                      isCurrent ? `bg-gradient-to-br ${step.color} shadow-lg scale-110 ring-4 ring-white` :
+                      isActive ? 'bg-emerald-400 text-white' :
+                      'bg-slate-200 text-slate-500'
+                    }`}>
+                      {isActive && !isCurrent ? '✓' : step.icon}
+                    </div>
+                    <span className={`mt-2 text-xs font-semibold ${
+                      isCurrent ? 'text-white' : isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                    }`}>
+                      {step.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Attendance Counter */}
+          {(status === 'ACTIVE' || status === 'QR_ACTIVE') && (
+            <div className="card text-center" style={{ animation: 'bounceIn 0.5s ease-out' }}>
+              <p className="text-sm text-slate-500 mb-2">Students Marked</p>
+              <p className="text-5xl font-extrabold bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent">
+                {attendanceCount}
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3" style={{ animation: 'fadeUp 0.5s ease-out 0.3s both' }}>
+            {status === 'SCHEDULED' && (
+              <button
+                onClick={startSession}
+                disabled={loading}
+                className="btn bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 shadow-lg"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-xl">▶️</span> Start Session
+                </span>
+              </button>
+            )}
+
+            {(status === 'ACTIVE' || status === 'QR_ACTIVE') && !qrDataUrl && (
+              <button
+                onClick={generateQR}
+                disabled={loading}
+                className="btn bg-gradient-to-r from-violet-500 to-violet-600 text-white hover:from-violet-600 hover:to-violet-700 disabled:opacity-50 shadow-lg"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-xl">📱</span> Generate QR
+                </span>
+              </button>
+            )}
+
+            {status !== 'ENDED' && status !== 'SCHEDULED' && (
+              <button
+                onClick={finishSession}
+                disabled={loading}
+                className="btn bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 disabled:opacity-50 shadow-lg"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-xl">🏁</span> End Session
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* QR Display */}
+          {qrDataUrl && (
+            <div className="card flex flex-col items-center" style={{ animation: 'scaleIn 0.5s ease-out' }}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">📱</span>
+                <h3 className="text-xl font-bold">Scan QR to Mark Attendance</h3>
+              </div>
+              <div className="p-4 bg-white rounded-2xl shadow-inner">
+                <img src={qrDataUrl} alt="QR Code" className="w-64 h-64 rounded-xl" />
+              </div>
+              <div className="mt-6 w-full">
+                <div className="w-full bg-slate-200 rounded-full h-3 mb-3">
+                  <div
+                    className="bg-gradient-to-r from-amber-400 to-red-500 h-3 rounded-full transition-all duration-1000"
+                    style={{ width: `${(countdown / 300) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-center">
+                    <p className="text-3xl font-extrabold text-red-500">{Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</p>
+                    <p className="text-xs text-muted">Expires in</p>
+                  </div>
+                  <div className="flex gap-3">
+                    {countdown <= 0 && (
+                      <button
+                        onClick={generateQR}
+                        className="btn bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
+                      >
+                        🔄 Regenerate
+                      </button>
+                    )}
+                    <button
+                      onClick={finishSession}
+                      className="btn bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
+                    >
+                      🏁 Finish
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-16 text-center">
+          <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-4 text-muted">Loading class details...</p>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes stepIn {
+          from { opacity: 0; transform: scale(0.5); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes bounceIn {
+          0% { opacity: 0; transform: scale(0.3); }
+          50% { transform: scale(1.05); }
+          70% { transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </Shell>
+  );
+}
