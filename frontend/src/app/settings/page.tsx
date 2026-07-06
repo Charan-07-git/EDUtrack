@@ -347,10 +347,12 @@ function FaceRegisterCard() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [photoData, setPhotoData] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [cameraReady, setCameraReady] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [msg, setMsg] = useState('');
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   async function openCamera() {
     setMsg('');
@@ -361,6 +363,7 @@ function FaceRegisterCard() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setCameraReady(true);
+        setCameraOpen(true);
       }
     } catch { setMsg('Camera access denied'); }
   }
@@ -372,30 +375,68 @@ function FaceRegisterCard() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d')?.drawImage(video, 0, 0);
-    setPhotoData(canvas.toDataURL('image/jpeg', 0.7));
+    const data = canvas.toDataURL('image/jpeg', 0.7);
+    setPhotos(prev => [...prev, data]);
+  }
+
+  function closeCamera() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
-  }
-
-  function retake() {
-    setPhotoData(null);
     setCameraReady(false);
-    openCamera();
+    setCameraOpen(false);
   }
 
   async function save() {
-    if (!photoData) return;
-    setSaving(true);
+    if (photos.length < 6) return;
+    setProcessing(true);
     setMsg('');
     try {
-      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photoData, faceRegistered: true }) });
+      const faceapi = await import('face-api.js');
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+      await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+
+      const descriptors: Float32Array[] = [];
+      for (const p of photos) {
+        try {
+          const img = await faceapi.fetchImage(p);
+          const det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
+            .withFaceLandmarks().withFaceDescriptor();
+          if (det?.descriptor) descriptors.push(det.descriptor);
+        } catch {}
+      }
+
+      if (descriptors.length < 3) {
+        setMsg('Could not detect face clearly in enough photos. Please retake with better lighting.');
+        setProcessing(false);
+        return;
+      }
+
+      const avg = new Float32Array(128);
+      for (const d of descriptors) {
+        for (let i = 0; i < 128; i++) avg[i] += d[i];
+      }
+      for (let i = 0; i < 128; i++) avg[i] /= descriptors.length;
+
+      setSaving(true);
+      closeCamera();
+      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photos[photos.length - 1] }) });
+      await api('/api/me/face-descriptor', {
+        method: 'PUT',
+        body: JSON.stringify({ faceDescriptor: Array.from(avg), photoUrl: photos[photos.length - 1] }),
+      });
       setMsg('Face registered successfully!');
-      setPhotoData(null);
+      setPhotos([]);
       setTimeout(() => window.location.reload(), 1500);
-    } catch { setMsg('Failed to save photo'); }
+    } catch { setMsg('Failed to process face data'); }
+    setProcessing(false);
     setSaving(false);
+  }
+
+  function removePhoto(idx: number) {
+    setPhotos(prev => prev.filter((_, i) => i !== idx));
   }
 
   useEffect(() => {
@@ -406,7 +447,7 @@ function FaceRegisterCard() {
     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.22s both' }}>
       <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Face Registration</h3>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        Take a selfie for face-based attendance verification.
+        Take at least 6 photos from different angles for attendance verification.
       </p>
 
       {msg && (
@@ -415,24 +456,10 @@ function FaceRegisterCard() {
         </div>
       )}
 
-      {photoData ? (
-        <div className="text-center mb-4">
-          <div className="inline-block rounded-2xl ring-4 ring-blue-200 dark:ring-blue-800 overflow-hidden shadow-xl">
-            <img src={photoData} alt="Selfie" className="w-48 h-48 object-cover" />
-          </div>
-          <div className="flex gap-3 justify-center mt-4">
-            <button onClick={retake} className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm">
-              Retake
-            </button>
-            <button onClick={save} disabled={saving} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : 'Register Face'}
-            </button>
-          </div>
-        </div>
-      ) : (
+      {cameraOpen && (
         <div>
-          <div className="relative bg-black rounded-2xl overflow-hidden mb-4">
-            <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
+          <div className="relative bg-black rounded-2xl overflow-hidden mb-3">
+            <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[280px] object-cover" />
             <canvas ref={canvasRef} className="hidden" />
             {!cameraReady && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -440,21 +467,51 @@ function FaceRegisterCard() {
               </div>
             )}
           </div>
-          <div className="flex justify-center">
-            {cameraReady ? (
-              <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white/80 hover:bg-white text-slate-900 shadow-lg transition-all flex items-center justify-center">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              {photos.length} / 6 photos
+            </span>
+            <div className="flex gap-2">
+              <button onClick={capturePhoto} disabled={!cameraReady} className="w-14 h-14 rounded-full bg-white/80 hover:bg-white text-slate-900 shadow-lg transition-all disabled:opacity-40 flex items-center justify-center">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
                 </svg>
               </button>
-            ) : (
-              <button onClick={openCamera} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm">
-                Open Camera
+              <button onClick={closeCamera} className="w-14 h-14 rounded-full bg-red-500/80 hover:bg-red-500 text-white shadow-lg transition-all flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            )}
+            </div>
           </div>
+
+          {photos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+              {photos.map((p, i) => (
+                <div key={i} className="relative shrink-0">
+                  <img src={p} alt={`Capture ${i + 1}`} className="w-16 h-16 rounded-xl object-cover ring-2 ring-blue-300" />
+                  <button onClick={() => removePhoto(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center shadow">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={save}
+            disabled={photos.length < 6 || saving || processing}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+          >
+            {processing ? 'Processing face data...' : saving ? 'Saving...' : 'Register Face'}
+          </button>
         </div>
+      )}
+
+      {!cameraOpen && photos.length === 0 && (
+        <button onClick={openCamera} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm">
+          Open Camera
+        </button>
       )}
     </div>
   );
