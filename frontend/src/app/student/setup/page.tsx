@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -20,9 +20,16 @@ export default function StudentSetupPage() {
   const [year, setYear] = useState<number | null>(null);
   const [department, setDepartment] = useState("");
   const [semester, setSemester] = useState<number | null>(null);
-  const [step, setStep] = useState<"year-dept" | "semester" | "done">("year-dept");
+  const [step, setStep] = useState<"year-dept" | "semester" | "photo" | "done">("year-dept");
   const [loading, setLoading] = useState(false);
   const [prevSetup, setPrevSetup] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [photoCaptured, setPhotoCaptured] = useState(false);
+  const [photoData, setPhotoData] = useState<string | null>(null);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  const faceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const prevY = localStorage.getItem("edutrack_year");
@@ -58,12 +65,79 @@ export default function StudentSetupPage() {
       localStorage.setItem("edutrack_year", String(year));
       localStorage.setItem("edutrack_department", department);
       localStorage.setItem("edutrack_semester", String(semester));
-      setStep("done");
-      setTimeout(() => router.push("/student/dashboard"), 800);
+      setStep("photo");
+      setTimeout(() => openCamera(), 500);
     } catch {
       setLoading(false);
     }
   }
+
+  async function openCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      const faceapi = await import('face-api.js');
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      faceIntervalRef.current = setInterval(async () => {
+        const video = videoRef.current;
+        if (!video || !video.videoWidth || photoCaptured) return;
+        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }));
+        if (det) {
+          clearInterval(faceIntervalRef.current!);
+          faceIntervalRef.current = null;
+          capturePhoto();
+        }
+      }, 1000);
+    } catch {
+      setStep("done");
+      setTimeout(() => router.push("/student/dashboard"), 800);
+    }
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')?.drawImage(video, 0, 0);
+    const data = canvas.toDataURL('image/jpeg', 0.7);
+    setPhotoData(data);
+    setPhotoCaptured(true);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  }
+
+  async function savePhoto() {
+    if (!photoData) return;
+    setSavingPhoto(true);
+    try {
+      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photoData }) });
+      setStep("done");
+      setTimeout(() => router.push("/student/dashboard"), 800);
+    } catch {
+      setSavingPhoto(false);
+    }
+  }
+
+  function retakePhoto() {
+    setPhotoCaptured(false);
+    setPhotoData(null);
+    openCamera();
+  }
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      if (faceIntervalRef.current) clearInterval(faceIntervalRef.current);
+    };
+  }, []);
 
   if (step === "done") {
     return (
@@ -192,6 +266,55 @@ export default function StudentSetupPage() {
                 ← Change year or department
               </button>
             )}
+          </div>
+        )}
+
+        {/* Photo capture */}
+        {step === "photo" && (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 text-center">
+              {prevSetup ? "Update Your Face Photo" : "Capture Your Face Photo"}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4">
+              This photo will be used to verify your identity during attendance
+            </p>
+            <div className="relative bg-black rounded-2xl overflow-hidden mb-4">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
+              <canvas ref={canvasRef} className="hidden" />
+              {!photoCaptured && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-48 h-48 rounded-full border-2 border-dashed border-white/30" />
+                </div>
+              )}
+              {!photoCaptured && !photoData && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-full px-4 py-2">
+                  <span className="text-xs text-white">Look at the camera...</span>
+                </div>
+              )}
+            </div>
+            {photoData && (
+              <div className="text-center mb-4">
+                <div className="inline-block rounded-2xl ring-4 ring-blue-200 dark:ring-blue-800 overflow-hidden shadow-xl">
+                  <img src={photoData} alt="Captured" className="w-48 h-48 object-cover" />
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3 justify-center">
+              {photoData ? (
+                <>
+                  <button onClick={retakePhoto} className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all text-sm">
+                    Retake
+                  </button>
+                  <button onClick={savePhoto} disabled={savingPhoto} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 text-sm disabled:opacity-50">
+                    {savingPhoto ? "Saving..." : "Save Photo →"}
+                  </button>
+                </>
+              ) : !photoCaptured ? (
+                <button onClick={capturePhoto} className="px-6 py-2.5 bg-white/90 text-slate-900 font-bold rounded-xl shadow-lg text-sm hover:bg-white transition-all">
+                  Capture
+                </button>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

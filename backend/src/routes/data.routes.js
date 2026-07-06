@@ -28,13 +28,14 @@ r.get("/me", async (req, res) => {
 });
 
 r.put("/me", async (req, res) => {
-  const { name, department, semester, year, selectedSubject, facultyCode } = req.body;
+  const { name, department, semester, year, selectedSubject, facultyCode, photoUrl } = req.body;
   const data = {};
   if (name !== undefined) data.name = name;
   if (department !== undefined) data.department = department;
   if (semester !== undefined) data.semester = Number(semester);
   if (year !== undefined) data.year = Number(year);
   if (selectedSubject !== undefined) data.selectedSubject = selectedSubject;
+  if (photoUrl !== undefined) data.photoUrl = photoUrl;
   if (facultyCode !== undefined) {
     data.facultyCode = facultyCode;
     try {
