@@ -415,12 +415,24 @@ export default function Page() {
         {/* Camera / Detecting Face */}
         {(step === 'camera' || step === 'detecting') && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 text-center">
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center justify-center gap-2">
               <span className="text-xs font-medium text-slate-300">Wait to verify and mark attendance</span>
+              {storedPhotoUrl && (
+                <div className="relative group">
+                  <img src={storedPhotoUrl} alt="Stored" className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-400/60" />
+                  <div className="absolute -top-1 -right-1 w-9 h-9 rounded-full bg-blue-500/20 animate-ping" />
+                </div>
+              )}
             </div>
             <div className="relative bg-black">
               <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
               <canvas ref={canvasRef} className="hidden" />
+              {storedPhotoUrl && (
+                <div className="absolute top-2 right-2">
+                  <img src={storedPhotoUrl} alt="Stored reference" className="w-16 h-16 rounded-xl object-cover ring-2 ring-white/40 shadow-lg" />
+                  <p className="text-[9px] text-white/70 text-center mt-0.5">Stored</p>
+                </div>
+              )}
               {step === 'detecting' && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-48 h-48 rounded-full border-2 border-emerald-400/60 animate-pulse shadow-[0_0_30px_rgba(52,211,153,0.3)]" />
