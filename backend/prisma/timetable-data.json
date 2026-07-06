@@ -2,6 +2,1661 @@
   "institution": "University College of Engineering (Autonomous), Osmania University",
   "department": "Computer Science and Engineering",
   "semesters": {
+    "1": {
+      "year": 1,
+      "semester": 1,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "H & S - 209",
+      "effectiveFrom": "2025-08-01",
+      "timeSlots": [
+        "09:00-10:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "11:00-13:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "14:00-16:00",
+        "15:00-17:00"
+      ],
+      "faculty": {
+        "GUR": "Dr. G. Upendra Reddy",
+        "NN": "Dr. N. Narsimlu",
+        "JU": "Dr. J. Upender",
+        "RLS": "Dr. R. Linga Swamy",
+        "KSH": "Prof. K. Shyamala",
+        "IGR": "Dr. G. Govardhan Rao",
+        "SR": "Dr. Sai Reethi",
+        "MNR": "M. Narender Reddy",
+        "SJ": "S. J. Siva Jyothi",
+        "RSL": "Dr. R. Swarna Latha",
+        "BA": "Dr. B. Ashok",
+        "KKM": "Dr. K. Krishna Murthy"
+      },
+      "subjects": {
+        "EM-I": "Engineering Mathematics-I",
+        "APL. PHY": "Applied Physics",
+        "BEE LAB": "Basic Electrical Engineering Lab",
+        "DLD": "Digital Logic Design",
+        "PPS LAB": "Programming for Problem Solving Lab",
+        "BEE": "Basic Electrical Engineering",
+        "PPS": "Programming for Problem Solving",
+        "APL. PHY LAB": "Applied Physics Lab"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Engineering Mathematics-I",
+            "code": "EM-I",
+            "faculty": "Dr. G. Upendra Reddy",
+            "facultyCode": "GUR",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Applied Physics",
+            "code": "APL. PHY",
+            "faculty": "Dr. N. Narsimlu",
+            "facultyCode": "NN",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Basic Electrical Engineering Lab",
+                "code": "BEE LAB",
+                "batch": "Batch-A",
+                "faculty": "Dr. J. Upender / Dr. R. Linga Swamy",
+                "facultyCode": "JU / RLS",
+                "room": "EEE Dept."
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Digital Logic Design",
+            "code": "DLD",
+            "faculty": "Prof. K. Shyamala",
+            "facultyCode": "KSH",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Programming for Problem Solving Lab",
+                "code": "PPS LAB",
+                "batch": "Batch-2",
+                "faculty": "Dr. G. Govardhan Rao / Dr. Sai Reethi",
+                "facultyCode": "IGR / SR",
+                "room": "SW Lab-II"
+              }
+            ]
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Digital Logic Design",
+            "code": "DLD",
+            "faculty": "Prof. K. Shyamala",
+            "facultyCode": "KSH",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Basic Electrical Engineering",
+            "code": "BEE",
+            "faculty": "Dr. J. Upender",
+            "facultyCode": "JU",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Programming for Problem Solving Lab",
+                "code": "PPS LAB",
+                "batch": "Batch-1",
+                "faculty": "M. Narender Reddy / S. J. Siva Jyothi",
+                "facultyCode": "MNR / SJ",
+                "room": "SW Lab-II"
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Programming for Problem Solving",
+            "code": "PPS",
+            "faculty": "M. Narender Reddy",
+            "facultyCode": "MNR",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Basic Electrical Engineering Lab",
+                "code": "BEE LAB",
+                "batch": "Batch-B",
+                "faculty": "Dr. J. Upender / Dr. R. Linga Swamy",
+                "facultyCode": "JU / RLS",
+                "room": "EEE Dept."
+              }
+            ]
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Basic Electrical Engineering",
+            "code": "BEE",
+            "faculty": "Dr. J. Upender",
+            "facultyCode": "JU",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Applied Physics Lab",
+                "code": "APL. PHY LAB",
+                "batch": "Batch-I",
+                "faculty": "Dr. N. Narsimlu / Dr. R. Swarna Latha / Dr. B. Ashok / Dr. K. Krishna Murthy",
+                "facultyCode": "NN / RSL / BA / KKM",
+                "room": "Applied Physics Lab"
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Programming for Problem Solving",
+            "code": "PPS",
+            "faculty": "M. Narender Reddy",
+            "facultyCode": "MNR",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Basic Electrical Engineering Lab",
+                "code": "BEE LAB",
+                "batch": "Batch-C",
+                "faculty": "Dr. J. Upender / Dr. R. Linga Swamy",
+                "facultyCode": "JU / RLS",
+                "room": "EEE Dept."
+              }
+            ]
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Engineering Mathematics-I",
+            "code": "EM-I",
+            "faculty": "Dr. G. Upendra Reddy",
+            "facultyCode": "GUR",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Engineering Mathematics-I",
+            "code": "EM-I",
+            "faculty": "Dr. G. Upendra Reddy",
+            "facultyCode": "GUR",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Applied Physics",
+            "code": "APL. PHY",
+            "faculty": "Dr. N. Narsimlu",
+            "facultyCode": "NN",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Basic Electrical Engineering",
+            "code": "BEE",
+            "faculty": "Dr. J. Upender",
+            "facultyCode": "JU",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Applied Physics Lab",
+                "code": "APL. PHY LAB",
+                "batch": "Batch-II",
+                "faculty": "Dr. N. Narsimlu / Dr. R. Swarna Latha / Dr. B. Ashok / Dr. K. Krishna Murthy",
+                "facultyCode": "NN / RSL / BA / KKM",
+                "room": "Applied Physics Lab"
+              }
+            ]
+          }
+        ],
+        "Friday": [
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Applied Physics",
+            "code": "APL. PHY",
+            "faculty": "Dr. N. Narsimlu",
+            "facultyCode": "NN",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Digital Logic Design",
+            "code": "DLD",
+            "faculty": "Prof. K. Shyamala",
+            "facultyCode": "KSH",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Programming for Problem Solving",
+            "code": "PPS",
+            "faculty": "M. Narender Reddy",
+            "facultyCode": "MNR",
+            "type": "Theory",
+            "room": "H & S - 209"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Programming for Problem Solving Lab",
+                "code": "PPS LAB",
+                "batch": "Batch-3",
+                "faculty": "M. Narender Reddy / S. J. Siva Jyothi",
+                "facultyCode": "MNR / SJ",
+                "room": "SW Lab-II"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "2": {
+      "year": 1,
+      "semester": 2,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "H & S - 204",
+      "effectiveFrom": "2025-08-01",
+      "timeSlots": [
+        "09:00-10:00",
+        "10:00-11:00",
+        "10:00-13:00",
+        "11:00-12:00",
+        "11:00-13:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "14:00-16:00",
+        "15:00-17:00"
+      ],
+      "faculty": {
+        "PT": "Dr. P. Thirupathi",
+        "MP": "Dr. M. Prakash",
+        "VV": "Dr. V. Vani",
+        "GS": "Dr. G. Sujatha",
+        "PSB": "Dr. P. Sumabindu",
+        "VBN": "Dr. V. B. Narsimha"
+      },
+      "subjects": {
+        "M-II": "Engineering Mathematics-II",
+        "WP": "Workshop Practice",
+        "CH Lab": "Engineering Chemistry Lab",
+        "Com. Eng": "Communicative English",
+        "CH-II": "Engineering Chemistry-II",
+        "EG": "Engineering Graphics",
+        "DM": "Discrete Mathematics",
+        "CE Lab": "Communicative English Lab"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Engineering Mathematics-II",
+            "code": "M-II",
+            "faculty": "Dr. P. Thirupathi",
+            "facultyCode": "PT",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Workshop Practice",
+                "code": "WP",
+                "batch": "All",
+                "faculty": "Dr. M. Prakash",
+                "facultyCode": "MP",
+                "room": "Workshop"
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Engineering Chemistry Lab",
+                "code": "CH Lab",
+                "batch": "All",
+                "faculty": "Dr. V. Vani / Dr. G. Sujatha",
+                "facultyCode": "VV / GS",
+                "room": "H & S - 204"
+              }
+            ]
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Communicative English",
+            "code": "Com. Eng",
+            "faculty": "Dr. P. Sumabindu",
+            "facultyCode": "PSB",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Engineering Mathematics-II",
+            "code": "M-II",
+            "faculty": "Dr. P. Thirupathi",
+            "facultyCode": "PT",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Engineering Chemistry-II",
+            "code": "CH-II",
+            "faculty": "Dr. V. Vani",
+            "facultyCode": "VV",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Engineering Graphics",
+                "code": "EG",
+                "batch": "All",
+                "faculty": "Civil Engineering Faculty",
+                "facultyCode": null,
+                "room": "Engineering Graphics Lab"
+              }
+            ]
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Discrete Mathematics",
+            "code": "DM",
+            "faculty": "Dr. V. B. Narsimha",
+            "facultyCode": "VBN",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Workshop Practice",
+                "code": "WP",
+                "batch": "All",
+                "faculty": "Dr. M. Prakash",
+                "facultyCode": "MP",
+                "room": "Workshop"
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Engineering Chemistry Lab",
+                "code": "CH Lab",
+                "batch": "All",
+                "faculty": "Dr. V. Vani / Dr. G. Sujatha",
+                "facultyCode": "VV / GS",
+                "room": "H & S - 204"
+              }
+            ]
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Discrete Mathematics",
+            "code": "DM",
+            "faculty": "Dr. V. B. Narsimha",
+            "facultyCode": "VBN",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Communicative English",
+            "code": "Com. Eng",
+            "faculty": "Dr. P. Sumabindu",
+            "facultyCode": "PSB",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Communicative English",
+            "code": "Com. Eng",
+            "faculty": "Dr. P. Sumabindu",
+            "facultyCode": "PSB",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Engineering Chemistry-II",
+            "code": "CH-II",
+            "faculty": "Dr. V. Vani",
+            "facultyCode": "VV",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Engineering Chemistry-II",
+            "code": "CH-II",
+            "faculty": "Dr. V. Vani",
+            "facultyCode": "VV",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Communicative English Lab",
+                "code": "CE Lab",
+                "batch": "Batch-I (1-41)",
+                "faculty": "Mrs. Savithri",
+                "facultyCode": null,
+                "room": "Communicative English Lab"
+              }
+            ]
+          }
+        ],
+        "Friday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Engineering Chemistry-II",
+            "code": "CH-II",
+            "faculty": "Dr. V. Vani",
+            "facultyCode": "VV",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "10:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Engineering Graphics",
+                "code": "EG",
+                "batch": "All",
+                "faculty": "Civil Engineering Faculty",
+                "facultyCode": null,
+                "room": "Engineering Graphics Lab"
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Discrete Mathematics",
+            "code": "DM",
+            "faculty": "Dr. V. B. Narsimha",
+            "facultyCode": "VBN",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Communicative English Lab",
+                "code": "CE Lab",
+                "batch": "Batch-I (42-Last)",
+                "faculty": "Mrs. Savithri",
+                "facultyCode": null,
+                "room": "Communicative English Lab"
+              }
+            ]
+          }
+        ],
+        "Saturday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Engineering Mathematics-II",
+            "code": "M-II",
+            "faculty": "Dr. P. Thirupathi",
+            "facultyCode": "PT",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Engineering Chemistry-II",
+            "code": "CH-II",
+            "faculty": "Dr. V. Vani",
+            "facultyCode": "VV",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Communicative English",
+            "code": "Com. Eng",
+            "faculty": "Dr. P. Sumabindu",
+            "facultyCode": "PSB",
+            "type": "Theory",
+            "room": "H & S - 204"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Discrete Mathematics",
+            "code": "DM",
+            "faculty": "Dr. V. B. Narsimha",
+            "facultyCode": "VBN",
+            "type": "Theory",
+            "room": "H & S - 204"
+          }
+        ]
+      }
+    },
+    "3": {
+      "year": 2,
+      "semester": 3,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "B-201",
+      "effectiveFrom": "2026-01-19",
+      "timeSlots": [
+        "09:00-10:00",
+        "09:00-11:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "11:00-13:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "14:00-16:00",
+        "15:00-16:00",
+        "15:00-17:00",
+        "16:00-17:00"
+      ],
+      "faculty": {
+        "PT": "Dr. P. Tirupathi",
+        "KPK": "Mr. K. Prem Kumar",
+        "PRK": "P. Ravi Kumar Reddy",
+        "EP": "Mrs. E. Pragnavi",
+        "PN": "P. Narayana",
+        "VS": "Dr. V. Sukanya",
+        "KSN": "Dr. K. Satyanarayana",
+        "SV": "Mr. Sai Vineeth",
+        "ACP": "Mr. A. Chaitanya Prasad",
+        "MNR": "Mr. M. Narendra Reddy"
+      },
+      "subjects": {
+        "M-III": "Mathematics III",
+        "BE": "Basic Electronics",
+        "CO&MP": "Computer Organization and Microprocessors",
+        "OOPJ": "Object Oriented Programming using Java",
+        "PL": "Programming Languages",
+        "DS": "Data Structures",
+        "CO&MP LAB": "Computer Organization and Microprocessors Lab",
+        "DS LAB": "Data Structures Lab",
+        "JAVA LAB": "Object Oriented Programming using Java Lab"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Mathematics III",
+            "code": "M-III",
+            "faculty": "Dr. P. Tirupathi",
+            "facultyCode": "PT",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Basic Electronics",
+            "code": "BE",
+            "faculty": "Mr. K. Prem Kumar",
+            "facultyCode": "KPK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Computer Organization and Microprocessors",
+            "code": "CO&MP",
+            "faculty": "P. Ravi Kumar Reddy",
+            "facultyCode": "PRK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Computer Organization and Microprocessors",
+            "code": "CO&MP",
+            "faculty": "P. Ravi Kumar Reddy",
+            "facultyCode": "PRK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Object Oriented Programming using Java",
+            "code": "OOPJ",
+            "faculty": "Mrs. E. Pragnavi",
+            "facultyCode": "EP",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "15:00",
+            "end": "16:00",
+            "subject": "Programming Languages",
+            "code": "PL",
+            "faculty": "P. Narayana",
+            "facultyCode": "PN",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "16:00",
+            "end": "17:00",
+            "subject": "Programming Languages",
+            "code": "PL",
+            "faculty": "P. Narayana",
+            "facultyCode": "PN",
+            "type": "Theory",
+            "room": "B-201"
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Mathematics III",
+            "code": "M-III",
+            "faculty": "Dr. P. Tirupathi",
+            "facultyCode": "PT",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Data Structures",
+            "code": "DS",
+            "faculty": "Dr. V. Sukanya",
+            "facultyCode": "VS",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Computer Organization and Microprocessors",
+            "code": "CO&MP",
+            "faculty": "P. Ravi Kumar Reddy",
+            "facultyCode": "PRK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Computer Organization and Microprocessors Lab",
+                "code": "CO&MP LAB",
+                "batch": "Batch-I",
+                "faculty": "Dr. K. Satyanarayana",
+                "facultyCode": "KSN",
+                "room": "R&D Lab-I"
+              }
+            ]
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Basic Electronics",
+            "code": "BE",
+            "faculty": "Mr. K. Prem Kumar",
+            "facultyCode": "KPK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Mathematics III",
+            "code": "M-III",
+            "faculty": "Dr. P. Tirupathi",
+            "facultyCode": "PT",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Object Oriented Programming using Java",
+            "code": "OOPJ",
+            "faculty": "Mrs. E. Pragnavi",
+            "facultyCode": "EP",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Object Oriented Programming using Java",
+            "code": "OOPJ",
+            "faculty": "Mrs. E. Pragnavi",
+            "facultyCode": "EP",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Data Structures",
+            "code": "DS",
+            "faculty": "Dr. V. Sukanya",
+            "facultyCode": "VS",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Computer Organization and Microprocessors Lab",
+                "code": "CO&MP LAB",
+                "batch": "Batch-II",
+                "faculty": "Dr. K. Satyanarayana",
+                "facultyCode": "KSN",
+                "room": "R&D Lab-I"
+              }
+            ]
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Programming Languages",
+            "code": "PL",
+            "faculty": "P. Narayana",
+            "facultyCode": "PN",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Basic Electronics",
+            "code": "BE",
+            "faculty": "Mr. K. Prem Kumar",
+            "facultyCode": "KPK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Data Structures Lab",
+                "code": "DS LAB",
+                "batch": "Batch-I",
+                "faculty": "Dr. V. Sukanya / Mr. Sai Vineeth",
+                "facultyCode": "VS/SV",
+                "room": "SW-IV Lab"
+              },
+              {
+                "subject": "Object Oriented Programming using Java Lab",
+                "code": "JAVA LAB",
+                "batch": "Batch-II",
+                "faculty": "Mrs. E. Pragnavi / Mr. A. Chaitanya Prasad",
+                "facultyCode": "EP/ACP",
+                "room": "SW-III Lab"
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Data Structures Lab",
+                "code": "DS LAB",
+                "batch": "Batch-II",
+                "faculty": "Mr. M. Narendra Reddy / Mr. Sai Vineeth",
+                "facultyCode": "MNR/SV",
+                "room": "Ramanujan Lab"
+              },
+              {
+                "subject": "Object Oriented Programming using Java Lab",
+                "code": "JAVA LAB",
+                "batch": "Batch-I",
+                "faculty": "Mrs. E. Pragnavi / Mr. A. Chaitanya Prasad",
+                "facultyCode": "EP/ACP",
+                "room": "SW-III Lab"
+              }
+            ]
+          }
+        ],
+        "Friday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Computer Organization and Microprocessors Lab",
+                "code": "CO&MP LAB",
+                "batch": "Batch-III",
+                "faculty": "Dr. K. Satyanarayana",
+                "facultyCode": "KSN",
+                "room": "R&D Lab-I"
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Data Structures",
+            "code": "DS",
+            "faculty": "Dr. V. Sukanya",
+            "facultyCode": "VS",
+            "type": "Theory",
+            "room": "B-201"
+          }
+        ]
+      }
+    },
+    "4": {
+      "year": 2,
+      "semester": 4,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "B-201",
+      "effectiveFrom": "2026-01-19",
+      "timeSlots": [
+        "09:00-10:00",
+        "09:00-11:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "14:00-16:00",
+        "15:00-17:00"
+      ],
+      "faculty": {
+        "RK": "Dr. Ramalingaiah Kadari",
+        "DSK": "Mr. D. Sai Kumar",
+        "RSR": "Dr. R. Seetharama Rao",
+        "BR": "Dr. B. Ramesh",
+        "KSH": "Prof. K. Shyamala",
+        "VBN": "Dr. V. B. Narasimha",
+        "CRK": "Dr. Ch. Rathan Kumar",
+        "EP": "Mrs. E. Pragnavi",
+        "BS": "Dr. B. Sujatha"
+      },
+      "subjects": {
+        "EM-IV": "Engineering Mathematics - IV",
+        "DAA": "Design and Analysis of Algorithms",
+        "MEA": "Managerial Economics & Accountancy",
+        "S&S": "Signals and Systems",
+        "DAR": "Data Analytics using R",
+        "DAA Lab": "Design and Analysis of Algorithms Lab",
+        "ALC": "Automata Languages and Computation",
+        "OS": "Operating Systems",
+        "OS Lab": "Operating Systems Lab"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Engineering Mathematics - IV",
+            "code": "EM-IV",
+            "faculty": "Dr. Ramalingaiah Kadari",
+            "facultyCode": "RK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Design and Analysis of Algorithms",
+            "code": "DAA",
+            "faculty": "Mr. D. Sai Kumar",
+            "facultyCode": "DSK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Managerial Economics & Accountancy",
+            "code": "MEA",
+            "faculty": "Dr. R. Seetharama Rao",
+            "facultyCode": "RSR",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Signals and Systems",
+            "code": "S&S",
+            "faculty": "Dr. B. Ramesh",
+            "facultyCode": "BR",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Data Analytics using R",
+            "code": "DAR",
+            "faculty": "Prof. K. Shyamala",
+            "facultyCode": "KSH",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Design and Analysis of Algorithms Lab",
+                "code": "DAA Lab",
+                "batch": "Batch-I (S-II)",
+                "faculty": "Dr. V. B. Narasimha",
+                "facultyCode": "VBN",
+                "room": "B-201"
+              }
+            ]
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Automata Languages and Computation",
+            "code": "ALC",
+            "faculty": "Dr. Ch. Rathan Kumar",
+            "facultyCode": "CRK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Engineering Mathematics - IV",
+            "code": "EM-IV",
+            "faculty": "Dr. Ramalingaiah Kadari",
+            "facultyCode": "RK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Operating Systems",
+            "code": "OS",
+            "faculty": "Mrs. E. Pragnavi",
+            "facultyCode": "EP",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Managerial Economics & Accountancy",
+            "code": "MEA",
+            "faculty": "Dr. R. Seetharama Rao",
+            "facultyCode": "RSR",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Design and Analysis of Algorithms Lab",
+                "code": "DAA Lab",
+                "batch": "Batch-II (S-II)",
+                "faculty": "Dr. V. B. Narasimha",
+                "facultyCode": "VBN",
+                "room": "B-201"
+              },
+              {
+                "subject": "Operating Systems Lab",
+                "code": "OS Lab",
+                "batch": "Batch-I (S-III)",
+                "faculty": "Mrs. E. Pragnavi",
+                "facultyCode": "EP",
+                "room": "B-201"
+              }
+            ]
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Design and Analysis of Algorithms Lab",
+                "code": "DAA Lab",
+                "batch": "Batch-III (S-II)",
+                "faculty": "Dr. B. Sujatha",
+                "facultyCode": "BS",
+                "room": "B-201"
+              },
+              {
+                "subject": "Operating Systems Lab",
+                "code": "OS Lab",
+                "batch": "Batch-II (S-III)",
+                "faculty": "Mrs. E. Pragnavi",
+                "facultyCode": "EP",
+                "room": "B-201"
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Operating Systems",
+            "code": "OS",
+            "faculty": "Mrs. E. Pragnavi",
+            "facultyCode": "EP",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Engineering Mathematics - IV",
+            "code": "EM-IV",
+            "faculty": "Dr. Ramalingaiah Kadari",
+            "facultyCode": "RK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Signals and Systems",
+            "code": "S&S",
+            "faculty": "Dr. B. Ramesh",
+            "facultyCode": "BR",
+            "type": "Theory",
+            "room": "B-201"
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Automata Languages and Computation",
+            "code": "ALC",
+            "faculty": "Dr. Ch. Rathan Kumar",
+            "facultyCode": "CRK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Design and Analysis of Algorithms",
+            "code": "DAA",
+            "faculty": "Mr. D. Sai Kumar",
+            "facultyCode": "DSK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Operating Systems",
+            "code": "OS",
+            "faculty": "Mrs. E. Pragnavi",
+            "facultyCode": "EP",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Data Analytics using R",
+            "code": "DAR",
+            "faculty": "Prof. K. Shyamala",
+            "facultyCode": "KSH",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Design and Analysis of Algorithms Lab",
+                "code": "DAA Lab",
+                "batch": "Batch-IV (S-II)",
+                "faculty": "Dr. B. Sujatha",
+                "facultyCode": "BS",
+                "room": "B-201"
+              },
+              {
+                "subject": "Operating Systems Lab",
+                "code": "OS Lab",
+                "batch": "Batch-III (S-III)",
+                "faculty": "Mrs. E. Pragnavi",
+                "facultyCode": "EP",
+                "room": "B-201"
+              }
+            ]
+          }
+        ],
+        "Friday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Automata Languages and Computation",
+            "code": "ALC",
+            "faculty": "Dr. Ch. Rathan Kumar",
+            "facultyCode": "CRK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Design and Analysis of Algorithms",
+            "code": "DAA",
+            "faculty": "Mr. D. Sai Kumar",
+            "facultyCode": "DSK",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Data Analytics using R",
+            "code": "DAR",
+            "faculty": "Prof. K. Shyamala",
+            "facultyCode": "KSH",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Managerial Economics & Accountancy",
+            "code": "MEA",
+            "faculty": "Dr. R. Seetharama Rao",
+            "facultyCode": "RSR",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Signals and Systems",
+            "code": "S&S",
+            "faculty": "Dr. B. Ramesh",
+            "facultyCode": "BR",
+            "type": "Theory",
+            "room": "B-201"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Operating Systems Lab",
+                "code": "OS Lab",
+                "batch": "Batch-IV (S-V)",
+                "faculty": "Mrs. E. Pragnavi",
+                "facultyCode": "EP",
+                "room": "B-201"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "5": {
+      "year": 3,
+      "semester": 5,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "B-210",
+      "effectiveFrom": "2026-01-19",
+      "timeSlots": [
+        "09:00-10:00",
+        "09:00-11:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "11:00-13:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "14:00-16:00",
+        "15:00-17:00"
+      ],
+      "faculty": {
+        "YVSP": "Prof. Y. V. S. Pragathi",
+        "RR": "Dr. Raghu Ram",
+        "VS": "Mrs. V. Sukanya",
+        "AG": "Dr. A. Gayathri",
+        "MVD": "Dr. M. Venkat Dass",
+        "VSP": "Mrs. V. Spoorthi",
+        "CKR": "Dr. C. Kishore Kumar Reddy",
+        "MAH": "Dr. M. A. Hameed",
+        "VBN": "Dr. V. B. Narasimha",
+        "MNR": "Mr. N. Naren Reddy",
+        "EP": "Mrs. E. Pragnavi",
+        "SV": "Mr. Sai Vineeth"
+      },
+      "subjects": {
+        "AI&ML": "Artificial Intelligence & Machine Learning",
+        "SE": "Software Engineering",
+        "WP": "Web Programming",
+        "NTC": "Number Theory and Cryptography",
+        "AI&ML Lab": "Artificial Intelligence & Machine Learning Lab",
+        "DBMS": "Database Management System",
+        "DM": "Data Mining",
+        "DBMS Lab": "Database Management Systems Lab",
+        "WP Lab": "Web Programming Lab"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Artificial Intelligence & Machine Learning",
+            "code": "AI&ML",
+            "faculty": "Prof. Y. V. S. Pragathi",
+            "facultyCode": "YVSP",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Software Engineering",
+            "code": "SE",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Software Engineering",
+            "code": "SE",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Web Programming",
+            "code": "WP",
+            "faculty": "Mrs. V. Sukanya",
+            "facultyCode": "VS",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Number Theory and Cryptography",
+            "code": "NTC",
+            "faculty": "Dr. A. Gayathri",
+            "facultyCode": "AG",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Artificial Intelligence & Machine Learning Lab",
+                "code": "AI&ML Lab",
+                "batch": "Batch-I",
+                "faculty": "Dr. M. Venkat Dass / Dr. A. Gayathri / Mrs. V. Spoorthi",
+                "facultyCode": "MVD/AG/VSP",
+                "room": "SW-IV Lab"
+              }
+            ]
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Artificial Intelligence & Machine Learning",
+            "code": "AI&ML",
+            "faculty": "Prof. Y. V. S. Pragathi",
+            "facultyCode": "YVSP",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Software Engineering",
+            "code": "SE",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Number Theory and Cryptography",
+            "code": "NTC",
+            "faculty": "Dr. A. Gayathri",
+            "facultyCode": "AG",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Web Programming",
+            "code": "WP",
+            "faculty": "Mrs. V. Sukanya",
+            "facultyCode": "VS",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Artificial Intelligence & Machine Learning Lab",
+                "code": "AI&ML Lab",
+                "batch": "Batch-II",
+                "faculty": "Dr. A. Gayathri / Mrs. V. Spoorthi",
+                "facultyCode": "AG/VSP",
+                "room": "Ramanujan Lab"
+              }
+            ]
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Database Management System",
+            "code": "DBMS",
+            "faculty": "Dr. C. Kishore Kumar Reddy",
+            "facultyCode": "CKR",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Data Mining",
+            "code": "DM",
+            "faculty": "Dr. M. A. Hameed",
+            "facultyCode": "MAH",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Database Management Systems Lab",
+                "code": "DBMS Lab",
+                "batch": "Batch-I",
+                "faculty": "Dr. V. B. Narasimha / Mr. N. Naren Reddy",
+                "facultyCode": "VBN/MNR",
+                "room": "SW-II Lab"
+              },
+              {
+                "subject": "Web Programming Lab",
+                "code": "WP Lab",
+                "batch": "Batch-II",
+                "faculty": "Mrs. V. Sukanya",
+                "facultyCode": "VS/SV",
+                "room": "SW-IV Lab"
+              }
+            ]
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Artificial Intelligence & Machine Learning",
+            "code": "AI&ML",
+            "faculty": "Prof. Y. V. S. Pragathi",
+            "facultyCode": "YVSP",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Database Management System",
+            "code": "DBMS",
+            "faculty": "Dr. C. Kishore Kumar Reddy",
+            "facultyCode": "CKR",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Number Theory and Cryptography",
+            "code": "NTC",
+            "faculty": "Dr. A. Gayathri",
+            "facultyCode": "AG",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Data Mining",
+            "code": "DM",
+            "faculty": "Dr. M. A. Hameed",
+            "facultyCode": "MAH",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Data Mining",
+            "code": "DM",
+            "faculty": "Dr. M. A. Hameed",
+            "facultyCode": "MAH",
+            "type": "Theory",
+            "room": "B-210"
+          }
+        ],
+        "Friday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Database Management Systems Lab",
+                "code": "DBMS Lab",
+                "batch": "Batch-II",
+                "faculty": "Dr. V. B. Narasimha / Mrs. V. Spoorthi",
+                "facultyCode": "VBN/VSP",
+                "room": "SW-II Lab"
+              },
+              {
+                "subject": "Web Programming Lab",
+                "code": "WP Lab",
+                "batch": "Batch-I",
+                "faculty": "Mrs. V. Sukanya / Mrs. E. Pragnavi / Mr. Sai Vineeth",
+                "facultyCode": "VS/EP/SV",
+                "room": "SW-IV Lab"
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Database Management System",
+            "code": "DBMS",
+            "faculty": "Dr. C. Kishore Kumar Reddy",
+            "facultyCode": "CKR",
+            "type": "Theory",
+            "room": "B-210"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Web Programming",
+            "code": "WP",
+            "faculty": "Mrs. V. Sukanya",
+            "facultyCode": "VS",
+            "type": "Theory",
+            "room": "B-210"
+          }
+        ]
+      }
+    },
     "6": {
       "year": 3,
       "semester": 6,
@@ -10,8 +1665,13 @@
       "room": "B-210",
       "effectiveFrom": "2026-01-19",
       "timeSlots": [
-        "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00",
-        "14:00-15:00", "15:00-16:00", "16:00-17:00"
+        "09:00-10:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "15:00-16:00",
+        "16:00-17:00"
       ],
       "faculty": {
         "DSK": "Dr. D. Sri Kumar",
@@ -36,52 +1696,825 @@
       },
       "timetable": {
         "Monday": [
-          { "start": "10:00", "end": "11:00", "subject": "Deep Learning", "code": "DL", "faculty": "Dr. M.A. Hameed", "facultyCode": "MAH", "type": "Theory" },
-          { "start": "11:00", "end": "12:00", "subject": "Computer Networks", "code": "CN", "faculty": "Dr. L.K. Suresh Kumar", "facultyCode": "LKSK", "type": "Theory" },
-          { "start": "12:00", "end": "13:00", "subject": "Human Computer Interaction", "code": "PE-III", "faculty": "Mr. M. Narendra Reddy", "facultyCode": "MNR", "type": "Theory" },
-          { "start": "14:00", "end": "15:00", "subject": "Open Elective-I", "type": "Theory" },
-          { "start": "15:00", "end": "17:00", "type": "Lab", "labs": [
-            { "subject": "Compiler Design Lab", "batch": "II", "faculty": "Dr. M. Venkati Dass", "facultyCode": "MVD" },
-            { "subject": "Computer Networks Lab", "batch": "IV", "faculty": "Dr. L.K. Suresh Kumar", "facultyCode": "LKSK" },
-            { "subject": "Deep Learning Lab", "batch": "I", "faculty": "Dr. M.A. Hameed", "facultyCode": "MAH" }
-          ]}
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Deep Learning",
+            "code": "DL",
+            "faculty": "Dr. M.A. Hameed",
+            "facultyCode": "MAH",
+            "type": "Theory"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Computer Networks",
+            "code": "CN",
+            "faculty": "Dr. L.K. Suresh Kumar",
+            "facultyCode": "LKSK",
+            "type": "Theory"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Human Computer Interaction",
+            "code": "PE-III",
+            "faculty": "Mr. M. Narendra Reddy",
+            "facultyCode": "MNR",
+            "type": "Theory"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Open Elective-I",
+            "type": "Theory"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Compiler Design Lab",
+                "batch": "II",
+                "faculty": "Dr. M. Venkati Dass",
+                "facultyCode": "MVD"
+              },
+              {
+                "subject": "Computer Networks Lab",
+                "batch": "IV",
+                "faculty": "Dr. L.K. Suresh Kumar",
+                "facultyCode": "LKSK"
+              },
+              {
+                "subject": "Deep Learning Lab",
+                "batch": "I",
+                "faculty": "Dr. M.A. Hameed",
+                "facultyCode": "MAH"
+              }
+            ]
+          }
         ],
         "Tuesday": [
-          { "start": "10:00", "end": "11:00", "subject": "Distributed Systems", "code": "DS", "faculty": "Prof. P.V. Sudha", "facultyCode": "PVS" },
-          { "start": "11:00", "end": "12:00", "subject": "Compiler Design", "code": "CD", "faculty": "Dr. D. Sri Kumar", "facultyCode": "DSK" },
-          { "start": "12:00", "end": "13:00", "subject": "Deep Learning", "code": "DL", "faculty": "Dr. M.A. Hameed", "facultyCode": "MAH" },
-          { "start": "14:00", "end": "15:00", "subject": "Open Elective-I" },
-          { "start": "15:00", "end": "17:00", "type": "Lab", "labs": [
-            { "subject": "Deep Learning Lab", "batch": "III", "faculty": "Dr. M.A. Hameed" },
-            { "subject": "Compiler Design Lab", "batch": "IV", "faculty": "Dr. A. Gayathri" }
-          ]}
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Distributed Systems",
+            "code": "DS",
+            "faculty": "Prof. P.V. Sudha",
+            "facultyCode": "PVS"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Compiler Design",
+            "code": "CD",
+            "faculty": "Dr. D. Sri Kumar",
+            "facultyCode": "DSK"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Deep Learning",
+            "code": "DL",
+            "faculty": "Dr. M.A. Hameed",
+            "facultyCode": "MAH"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Open Elective-I"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Deep Learning Lab",
+                "batch": "III",
+                "faculty": "Dr. M.A. Hameed"
+              },
+              {
+                "subject": "Compiler Design Lab",
+                "batch": "IV",
+                "faculty": "Dr. A. Gayathri"
+              }
+            ]
+          }
         ],
         "Wednesday": [
-          { "start": "10:00", "end": "11:00", "subject": "Compiler Design", "code": "CD", "faculty": "Dr. D. Sri Kumar" },
-          { "start": "11:00", "end": "12:00", "subject": "Distributed Systems", "code": "DS", "faculty": "Prof. P.V. Sudha" },
-          { "start": "12:00", "end": "13:00", "subject": "Human Computer Interaction", "code": "PE-III", "faculty": "Mr. M. Narendra Reddy" },
-          { "start": "14:00", "end": "15:00", "subject": "Open Elective-I" },
-          { "start": "15:00", "end": "17:00", "type": "Lab", "labs": [
-            { "subject": "Compiler Design Lab", "batch": "III", "faculty": "Dr. M. Venkati Dass" },
-            { "subject": "Deep Learning Lab", "batch": "II", "faculty": "Dr. M.A. Hameed" },
-            { "subject": "Computer Networks Lab", "batch": "I", "faculty": "Mr. M. Narendra Reddy" }
-          ]}
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Compiler Design",
+            "code": "CD",
+            "faculty": "Dr. D. Sri Kumar"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Distributed Systems",
+            "code": "DS",
+            "faculty": "Prof. P.V. Sudha"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Human Computer Interaction",
+            "code": "PE-III",
+            "faculty": "Mr. M. Narendra Reddy"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Open Elective-I"
+          },
+          {
+            "start": "15:00",
+            "end": "17:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Compiler Design Lab",
+                "batch": "III",
+                "faculty": "Dr. M. Venkati Dass"
+              },
+              {
+                "subject": "Deep Learning Lab",
+                "batch": "II",
+                "faculty": "Dr. M.A. Hameed"
+              },
+              {
+                "subject": "Computer Networks Lab",
+                "batch": "I",
+                "faculty": "Mr. M. Narendra Reddy"
+              }
+            ]
+          }
         ],
         "Thursday": [
-          { "start": "09:00", "end": "10:00", "subject": "Compiler Design", "code": "CD", "faculty": "Dr. D. Sri Kumar" },
-          { "start": "10:00", "end": "11:00", "subject": "Computer Networks", "code": "CN", "faculty": "Dr. L.K. Suresh Kumar" },
-          { "start": "11:00", "end": "12:00", "subject": "Deep Learning", "code": "DL", "faculty": "Dr. M.A. Hameed" },
-          { "start": "12:00", "end": "13:00", "subject": "Distributed Systems", "code": "DS", "faculty": "Prof. P.V. Sudha" }
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Compiler Design",
+            "code": "CD",
+            "faculty": "Dr. D. Sri Kumar"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Computer Networks",
+            "code": "CN",
+            "faculty": "Dr. L.K. Suresh Kumar"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Deep Learning",
+            "code": "DL",
+            "faculty": "Dr. M.A. Hameed"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Distributed Systems",
+            "code": "DS",
+            "faculty": "Prof. P.V. Sudha"
+          }
         ],
         "Friday": [
-          { "start": "11:00", "end": "12:00", "subject": "Computer Networks", "code": "CN", "faculty": "Dr. L.K. Suresh Kumar" },
-          { "start": "12:00", "end": "13:00", "subject": "Human Computer Interaction", "code": "PE-III", "faculty": "Mr. M. Narendra Reddy" },
-          { "start": "14:00", "end": "16:00", "type": "Lab", "labs": [
-            { "subject": "Compiler Design Lab", "batch": "I", "faculty": "Dr. M. Venkati Dass" },
-            { "subject": "Deep Learning Lab", "batch": "IV", "faculty": "Dr. A. Gayathri" },
-            { "subject": "Computer Networks Lab", "batch": "II", "faculty": "Dr. L.K. Suresh Kumar" },
-            { "subject": "Computer Networks Lab", "batch": "III", "faculty": "Mr. M. Narendra Reddy" }
-          ]}
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Computer Networks",
+            "code": "CN",
+            "faculty": "Dr. L.K. Suresh Kumar"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Human Computer Interaction",
+            "code": "PE-III",
+            "faculty": "Mr. M. Narendra Reddy"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Compiler Design Lab",
+                "batch": "I",
+                "faculty": "Dr. M. Venkati Dass"
+              },
+              {
+                "subject": "Deep Learning Lab",
+                "batch": "IV",
+                "faculty": "Dr. A. Gayathri"
+              },
+              {
+                "subject": "Computer Networks Lab",
+                "batch": "II",
+                "faculty": "Dr. L.K. Suresh Kumar"
+              },
+              {
+                "subject": "Computer Networks Lab",
+                "batch": "III",
+                "faculty": "Mr. M. Narendra Reddy"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "7": {
+      "year": 4,
+      "semester": 7,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "B-209",
+      "effectiveFrom": "2026-01-19",
+      "timeSlots": [
+        "09:00-10:00",
+        "09:00-11:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "12:00-13:00",
+        "14:00-15:00",
+        "14:00-16:00",
+        "15:00-16:00",
+        "16:00-17:00"
+      ],
+      "faculty": {
+        "LKSK": "Dr. L.K. Suresh Kumar",
+        "SJ": "Mrs. Siva Jyothi",
+        "KD": "Dr. Krishnaiah Dayala",
+        "RR": "Dr. Raghu Ram",
+        "MS": "Ms. Mary Soujanya",
+        "PN": "Dr. P. Narayana",
+        "PVS": "PVS",
+        "MVK": "Mr. M. Vinod Kumar"
+      },
+      "subjects": {
+        "CV Lab": "Computer Vision Lab",
+        "GAI": "Generative AI",
+        "NLP": "Natural Language Processing",
+        "GBT": "Green Building Technology",
+        "RL": "Reinforcement Learning",
+        "CV": "Computer Vision",
+        "CC": "Cloud Computing",
+        "BE Honors": "BE Honors - System Design",
+        "BIoT": "Basics of Internet of Things"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Computer Vision Lab",
+                "code": "CV Lab",
+                "batch": "Batch-I",
+                "faculty": "Dr. L.K. Suresh Kumar / Mrs. Siva Jyothi",
+                "facultyCode": "LKSK/SJ",
+                "room": "B-209"
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Generative AI",
+            "code": "GAI",
+            "faculty": "Dr. Krishnaiah Dayala",
+            "facultyCode": "KD",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Natural Language Processing",
+            "code": "NLP",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Green Building Technology",
+            "code": "GBT",
+            "faculty": "Ms. Mary Soujanya",
+            "facultyCode": "MS",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "16:00",
+            "end": "17:00",
+            "subject": "Reinforcement Learning",
+            "code": "RL",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-209"
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Computer Vision Lab",
+                "code": "CV Lab",
+                "batch": "Batch-II",
+                "faculty": "Dr. L.K. Suresh Kumar / Mrs. Siva Jyothi",
+                "facultyCode": "LKSK/SJ",
+                "room": "B-209"
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Computer Vision",
+            "code": "CV",
+            "faculty": "Dr. L.K. Suresh Kumar",
+            "facultyCode": "LKSK",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Computer Vision",
+            "code": "CV",
+            "faculty": "Dr. L.K. Suresh Kumar",
+            "facultyCode": "LKSK",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Green Building Technology",
+            "code": "GBT",
+            "faculty": "Ms. Mary Soujanya",
+            "facultyCode": "MS",
+            "type": "Theory",
+            "room": "B-209"
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Reinforcement Learning",
+            "code": "RL",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Generative AI",
+            "code": "GAI",
+            "faculty": "Dr. Krishnaiah Dayala",
+            "facultyCode": "KD",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Generative AI",
+            "code": "GAI",
+            "faculty": "Dr. Krishnaiah Dayala",
+            "facultyCode": "KD",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Cloud Computing",
+            "code": "CC",
+            "faculty": "Dr. P. Narayana",
+            "facultyCode": "PN",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "15:00",
+            "end": "16:00",
+            "subject": "Cloud Computing",
+            "code": "CC",
+            "faculty": "Dr. P. Narayana",
+            "facultyCode": "PN",
+            "type": "Theory",
+            "room": "B-209"
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "10:00",
+            "subject": "Reinforcement Learning",
+            "code": "RL",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "Cloud Computing",
+            "code": "CC",
+            "faculty": "Dr. P. Narayana",
+            "facultyCode": "PN",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "Computer Vision",
+            "code": "CV",
+            "faculty": "Dr. L.K. Suresh Kumar",
+            "facultyCode": "LKSK",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "Natural Language Processing",
+            "code": "NLP",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Natural Language Processing",
+            "code": "NLP",
+            "faculty": "Dr. Raghu Ram",
+            "facultyCode": "RR",
+            "type": "Theory",
+            "room": "B-209"
+          }
+        ],
+        "Friday": [
+          {
+            "start": "10:00",
+            "end": "11:00",
+            "subject": "BE Honors - System Design",
+            "code": "BE Honors",
+            "faculty": "PVS",
+            "facultyCode": "PVS",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "11:00",
+            "end": "12:00",
+            "subject": "BE Honors - System Design",
+            "code": "BE Honors",
+            "faculty": "PVS",
+            "facultyCode": "PVS",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "12:00",
+            "end": "13:00",
+            "subject": "BE Honors - System Design",
+            "code": "BE Honors",
+            "faculty": "PVS",
+            "facultyCode": "PVS",
+            "type": "Theory",
+            "room": "B-209"
+          }
+        ],
+        "Saturday": [
+          {
+            "start": "14:00",
+            "end": "15:00",
+            "subject": "Basics of Internet of Things",
+            "code": "BIoT",
+            "faculty": "Mr. M. Vinod Kumar",
+            "facultyCode": "MVK",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "15:00",
+            "end": "16:00",
+            "subject": "Basics of Internet of Things",
+            "code": "BIoT",
+            "faculty": "Mr. M. Vinod Kumar",
+            "facultyCode": "MVK",
+            "type": "Theory",
+            "room": "B-209"
+          },
+          {
+            "start": "16:00",
+            "end": "17:00",
+            "subject": "Basics of Internet of Things",
+            "code": "BIoT",
+            "faculty": "Mr. M. Vinod Kumar",
+            "facultyCode": "MVK",
+            "type": "Theory",
+            "room": "B-209"
+          }
+        ]
+      }
+    },
+    "8": {
+      "year": 4,
+      "semester": 8,
+      "class": "B.E CSE",
+      "academicYear": "2025-2026",
+      "room": "222",
+      "effectiveFrom": "2026-01-19",
+      "timeSlots": [
+        "09:00-11:00",
+        "11:00-13:00",
+        "14:00-16:00"
+      ],
+      "faculty": {
+        "PSB": "Mrs. P. Sumabindu",
+        "CS": "Dr. Ch. Sruthi",
+        "BS": "Ms. Busa Swapna",
+        "MP": "Dr. M. Prakash",
+        "NV": "Prof. N. Venkateshwarlu",
+        "KN": "Dr. Konda Nageshwar",
+        "ASC": "Prof. A. Sahadanandha Chary"
+      },
+      "subjects": {
+        "PW-II": "Project Work - II",
+        "ETPW": "English for Technical Paper Writing",
+        "EITK": "Essence of Indian Traditional Knowledge",
+        "ES": "Environmental Science",
+        "FL": "Financial Literacy",
+        "IPR": "Intellectual Property Rights",
+        "COI": "Constitution of India",
+        "SMY": "Stress Management by Yoga"
+      },
+      "timetable": {
+        "Monday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Project Work - II",
+                "code": "PW-II",
+                "batch": "All",
+                "faculty": "Faculty Coordinator",
+                "facultyCode": null,
+                "room": null
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "English for Technical Paper Writing",
+            "code": "ETPW",
+            "faculty": "Mrs. P. Sumabindu",
+            "facultyCode": "PSB",
+            "type": "Theory",
+            "room": "222"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Essence of Indian Traditional Knowledge",
+            "code": "EITK",
+            "faculty": "Dr. Ch. Sruthi",
+            "facultyCode": "CS",
+            "type": "Theory",
+            "room": "CELT"
+          }
+        ],
+        "Tuesday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Project Work - II",
+                "code": "PW-II",
+                "batch": "All",
+                "faculty": "Faculty Coordinator",
+                "facultyCode": null,
+                "room": null
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "subject": "Environmental Science",
+            "code": "ES",
+            "faculty": "Ms. Busa Swapna",
+            "facultyCode": "BS",
+            "type": "Theory",
+            "room": "209"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Financial Literacy",
+            "code": "FL",
+            "faculty": "Dr. M. Prakash",
+            "facultyCode": "MP",
+            "type": "Theory",
+            "room": "Seminar Hall"
+          }
+        ],
+        "Wednesday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Project Work - II",
+                "code": "PW-II",
+                "batch": "All",
+                "faculty": "Faculty Coordinator",
+                "facultyCode": null,
+                "room": null
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "English for Technical Paper Writing",
+            "code": "ETPW",
+            "faculty": "Mrs. P. Sumabindu",
+            "facultyCode": "PSB",
+            "type": "Theory",
+            "room": "222"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Essence of Indian Traditional Knowledge",
+            "code": "EITK",
+            "faculty": "Dr. Ch. Sruthi",
+            "facultyCode": "CS",
+            "type": "Theory",
+            "room": "CELT"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Intellectual Property Rights",
+            "code": "IPR",
+            "faculty": "Prof. N. Venkateshwarlu",
+            "facultyCode": "NV",
+            "type": "Theory",
+            "room": "210"
+          }
+        ],
+        "Thursday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Project Work - II",
+                "code": "PW-II",
+                "batch": "All",
+                "faculty": "Faculty Coordinator",
+                "facultyCode": null,
+                "room": null
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "subject": "Environmental Science",
+            "code": "ES",
+            "faculty": "Ms. Busa Swapna",
+            "facultyCode": "BS",
+            "type": "Theory",
+            "room": "209"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Intellectual Property Rights",
+            "code": "IPR",
+            "faculty": "Prof. N. Venkateshwarlu",
+            "facultyCode": "NV",
+            "type": "Theory",
+            "room": "210"
+          }
+        ],
+        "Friday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Project Work - II",
+                "code": "PW-II",
+                "batch": "All",
+                "faculty": "Faculty Coordinator",
+                "facultyCode": null,
+                "room": null
+              }
+            ]
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Financial Literacy",
+            "code": "FL",
+            "faculty": "Dr. M. Prakash",
+            "facultyCode": "MP",
+            "type": "Theory",
+            "room": "Seminar Hall"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Constitution of India",
+            "code": "COI",
+            "faculty": "Dr. Konda Nageshwar",
+            "facultyCode": "KN",
+            "type": "Theory",
+            "room": "210"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Stress Management by Yoga",
+            "code": "SMY",
+            "faculty": "Prof. A. Sahadanandha Chary",
+            "facultyCode": "ASC",
+            "type": "Theory",
+            "room": "117"
+          }
+        ],
+        "Saturday": [
+          {
+            "start": "09:00",
+            "end": "11:00",
+            "type": "Lab",
+            "labs": [
+              {
+                "subject": "Project Work - II",
+                "code": "PW-II",
+                "batch": "All",
+                "faculty": "Faculty Coordinator",
+                "facultyCode": null,
+                "room": null
+              }
+            ]
+          },
+          {
+            "start": "11:00",
+            "end": "13:00",
+            "subject": "Stress Management by Yoga",
+            "code": "SMY",
+            "faculty": "Prof. A. Sahadanandha Chary",
+            "facultyCode": "ASC",
+            "type": "Theory",
+            "room": "117"
+          },
+          {
+            "start": "14:00",
+            "end": "16:00",
+            "subject": "Constitution of India",
+            "code": "COI",
+            "faculty": "Dr. Konda Nageshwar",
+            "facultyCode": "KN",
+            "type": "Theory",
+            "room": "210"
+          }
         ]
       }
     }

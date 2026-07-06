@@ -148,6 +148,19 @@ edutrack/
 
 ## Changelog
 
+### v0.8.0 (2026-07-06)
+- **Timetable Data**: Added full timetable for all 8 semesters (CSE, BE)
+  - Sem 1: Engineering Mathematics-I, Applied Physics, Basic Electrical Engineering, Digital Logic Design, Programming for Problem Solving
+  - Sem 2: Engineering Mathematics-II, Engineering Chemistry-II, Communicative English, Discrete Mathematics, Workshop Practice, Engineering Graphics
+  - Sem 3: Mathematics III, Basic Electronics, Computer Organization & Microprocessors, Data Structures, OOP using Java, Programming Languages
+  - Sem 4: Engineering Mathematics-IV, Design & Analysis of Algorithms, Operating Systems, Automata Languages & Computation, Signals & Systems, Data Analytics using R, Managerial Economics
+  - Sem 5: Artificial Intelligence & ML, Software Engineering, Database Management Systems, Web Programming, Number Theory & Cryptography, Data Mining
+  - Sem 6: Compiler Design, Computer Networks, Distributed Systems, Deep Learning, HCI, Open Elective-I (existing)
+  - Sem 7: Computer Vision, Generative AI, Natural Language Processing, Cloud Computing, Reinforcement Learning, Green Building Technology, IoT
+  - Sem 8: Project Work-II, Environmental Science, Financial Literacy, English for Technical Paper Writing, IPR, Constitution of India, Stress Management by Yoga
+- **Master Timetable API**: `/api/timetable/master?semester=N` now returns data for all 8 semesters
+- **Semesters List API**: `/api/timetable/semesters` returns metadata for all 8 semesters
+
 ### v0.7.0 (2026-07-06)
 - **Sidebar**: Tapping profile photo opens modal with full-size preview and Change/Delete options
 - **Sidebar**: Added client-side image compression (400px max, JPEG 0.7 quality) before upload
@@ -213,6 +226,7 @@ edutrack/
 ### v1.0 — Stable Release (In Progress)
 - [x] Remove deprecated dashboard tiles
 - [x] Settings: profile photo upload and account deletion
+- [x] Full timetable data for all 8 semesters
 - [ ] API error boundary and toast notifications
 - [ ] Pagination for session archive
 - [ ] Export reports to PDF
