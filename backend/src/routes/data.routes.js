@@ -98,7 +98,6 @@ r.get("/classes/today", async (req, res) => {
   if (req.user.role === "TEACHER") {
     const where = {
       teacherId: req.user.id,
-      timetable: { some: { dayOfWeek: day } },
     };
     if (req.query.semester) where.semester = Number(req.query.semester);
     const classes = await prisma.class.findMany({
@@ -287,6 +286,22 @@ r.put("/teacher/my-subjects", async (req, res) => {
       where: { id: req.user.id },
       data: { selectedSubject: JSON.stringify(subjects || []) },
     });
+    const existingClasses = await prisma.class.findMany({ where: { teacherId: req.user.id } });
+    const existingCodes = new Set(existingClasses.map((c) => `${c.semester}-${c.code}`));
+    for (const sub of subjects || []) {
+      if (!existingCodes.has(`${sub.semester}-${sub.code}`)) {
+        await prisma.class.create({
+          data: {
+            subject: sub.name,
+            code: sub.code,
+            department: sub.department || "Computer Science",
+            semester: sub.semester,
+            year: Math.ceil(sub.semester / 2),
+            teacherId: req.user.id,
+          },
+        });
+      }
+    }
     res.json({ success: true, subjects: subjects || [] });
   } catch (err) {
     console.error("my-subjects put error:", err.message);

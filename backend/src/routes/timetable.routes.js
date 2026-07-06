@@ -153,7 +153,12 @@ r.get("/master", async (req, res) => {
     if (sem) {
       const semData = data.default.semesters[sem];
       if (!semData) return res.status(404).json({ message: `Semester ${sem} not found` });
-      return res.json(semData);
+      return res.json({
+        ...semData,
+        department: data.default.department,
+        academicYear: data.default.academicYear,
+        room: data.default.room,
+      });
     }
     res.json(data.default);
   } catch {

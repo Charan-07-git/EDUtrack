@@ -51,16 +51,35 @@ function getLabGradient(batch: string): string {
   return LAB_GRADIENTS[idx % LAB_GRADIENTS.length];
 }
 
+function romanize(n: number): string {
+  const map: Record<number, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII' };
+  return map[n] || String(n);
+}
+
 export default function Page() {
   const [master, setMaster] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
+  const [semesters, setSemesters] = useState<any[]>([]);
+  const [selectedSem, setSelectedSem] = useState<number | null>(null);
 
   useEffect(() => {
-    api('/api/timetable/master').then((d: any) => {
+    api('/api/timetable/semesters').then((d: any[]) => {
+      setSemesters(d);
+      if (d.length > 0) {
+        setSelectedSem(d[0].semester);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSem) return;
+    setLoaded(false);
+    setMaster(null);
+    api(`/api/timetable/master?semester=${selectedSem}`).then((d: any) => {
       setMaster(d);
       setLoaded(true);
     }).catch(() => setLoaded(true));
-  }, []);
+  }, [selectedSem]);
 
   function getEntry(day: string, slotIndex: number) {
     if (!master?.timetable) return null;
@@ -81,23 +100,54 @@ export default function Page() {
     <Shell role="teacher" title="Classes & Timetable">
       <BackButton href="/teacher/dashboard" label="Back to Dashboard" />
 
-      {!loaded ? (
-        <div className="card text-center py-16 mt-6">
+      <div className="mt-6 mb-6">
+        <div className="card">
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="text-sm font-semibold text-slate-500 dark:text-slate-400">Select Semester</label>
+            <div className="relative">
+              <select
+                value={selectedSem ?? ''}
+                onChange={(e) => setSelectedSem(Number(e.target.value))}
+                className="appearance-none bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 cursor-pointer"
+              >
+                <option value="" disabled>Choose semester</option>
+                {semesters.map((s) => (
+                  <option key={s.semester} value={s.semester}>Semester {s.semester} ({romanize(s.semester)})</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            <span className="text-xs text-slate-400">{master?.department || ''}</span>
+          </div>
+        </div>
+      </div>
+
+      {!selectedSem ? (
+        <div className="card text-center py-16">
+          <span className="text-5xl mb-4 block">👆</span>
+          <p className="text-lg font-semibold text-slate-300">Select a semester above</p>
+        </div>
+      ) : !loaded ? (
+        <div className="card text-center py-16">
           <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-muted">Loading timetable...</p>
         </div>
       ) : !master ? (
-        <div className="card text-center py-16 mt-6">
+        <div className="card text-center py-16">
           <span className="text-5xl mb-4 block">📋</span>
           <p className="text-lg font-semibold text-slate-300">Timetable not available</p>
           <p className="text-muted mt-2">The master timetable has not been loaded yet</p>
         </div>
       ) : (<>
-      <div className="mt-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700 p-4 lg:p-6 overflow-auto" style={{ animation: 'fadeUp 0.5s ease-out' }}>
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700 p-4 lg:p-6 overflow-auto" style={{ animation: 'fadeUp 0.5s ease-out' }}>
         <div className="flex items-center gap-3 mb-6">
           <img src="/logo.svg" alt="Logo" className="w-10 h-10" />
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{master.class} ({master.department}) {romanize(master.semester)}-Semester</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{master.class} ({master.department}) {romanize(selectedSem)}-Semester</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">Academic Year {master.academicYear} • Room {master.room}</p>
           </div>
         </div>
@@ -172,9 +222,4 @@ export default function Page() {
       </>)}
     </Shell>
   );
-}
-
-function romanize(n: number): string {
-  const map: Record<number, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII' };
-  return map[n] || String(n);
 }
