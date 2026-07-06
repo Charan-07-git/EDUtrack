@@ -29,7 +29,9 @@ export default function StudentSetupPage() {
   const [photoCaptured, setPhotoCaptured] = useState(false);
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
-  const faceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cameraReadyRef = useRef(false);
+  const [cameraError, setCameraError] = useState(false);
+  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     const prevY = localStorage.getItem("edutrack_year");
@@ -79,22 +81,11 @@ export default function StudentSetupPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+        cameraReadyRef.current = true;
       }
-      const faceapi = await import('face-api.js');
-      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-      faceIntervalRef.current = setInterval(async () => {
-        const video = videoRef.current;
-        if (!video || !video.videoWidth || photoCaptured) return;
-        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }));
-        if (det) {
-          clearInterval(faceIntervalRef.current!);
-          faceIntervalRef.current = null;
-          capturePhoto();
-        }
-      }, 1000);
     } catch {
-      setStep("done");
-      setTimeout(() => router.push("/student/dashboard"), 800);
+      setMsg("Camera unavailable. You can skip this step, but face verification may not work.");
+      setCameraError(true);
     }
   }
 
@@ -135,7 +126,6 @@ export default function StudentSetupPage() {
   useEffect(() => {
     return () => {
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-      if (faceIntervalRef.current) clearInterval(faceIntervalRef.current);
     };
   }, []);
 
@@ -276,22 +266,30 @@ export default function StudentSetupPage() {
               {prevSetup ? "Update Your Face Photo" : "Capture Your Face Photo"}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4">
-              This photo will be used to verify your identity during attendance
+              This photo is required for face verification during attendance
             </p>
-            <div className="relative bg-black rounded-2xl overflow-hidden mb-4">
-              <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
-              <canvas ref={canvasRef} className="hidden" />
-              {!photoCaptured && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 rounded-full border-2 border-dashed border-white/30" />
+            {cameraError ? (
+              <div className="text-center mb-4">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-4">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">{msg}</p>
                 </div>
-              )}
-              {!photoCaptured && !photoData && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-full px-4 py-2">
-                  <span className="text-xs text-white">Look at the camera...</span>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="relative bg-black rounded-2xl overflow-hidden mb-4">
+                <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
+                <canvas ref={canvasRef} className="hidden" />
+                {!photoCaptured && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-48 h-48 rounded-full border-2 border-dashed border-white/30" />
+                  </div>
+                )}
+                {!photoCaptured && !photoData && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-full px-4 py-2">
+                    <span className="text-xs text-white">Look at the camera...</span>
+                  </div>
+                )}
+              </div>
+            )}
             {photoData && (
               <div className="text-center mb-4">
                 <div className="inline-block rounded-2xl ring-4 ring-blue-200 dark:ring-blue-800 overflow-hidden shadow-xl">
@@ -310,9 +308,18 @@ export default function StudentSetupPage() {
                   </button>
                 </>
               ) : !photoCaptured ? (
-                <button onClick={capturePhoto} className="px-6 py-2.5 bg-white/90 text-slate-900 font-bold rounded-xl shadow-lg text-sm hover:bg-white transition-all">
-                  Capture
-                </button>
+                cameraError ? (
+                  <button onClick={() => { setStep("done"); setTimeout(() => router.push("/student/dashboard"), 800); }} className="px-6 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm">
+                    Skip for now
+                  </button>
+                ) : (
+                  <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white/80 hover:bg-white text-slate-900 shadow-lg text-sm font-bold transition-all flex items-center justify-center">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                    </svg>
+                  </button>
+                )
               ) : null}
             </div>
           </div>
