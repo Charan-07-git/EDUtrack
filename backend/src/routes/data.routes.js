@@ -19,6 +19,7 @@ r.get("/me", async (req, res) => {
       year: true,
       selectedSubject: true,
       designation: true,
+      facultyCode: true,
       photoUrl: true,
     },
   });
@@ -26,13 +27,14 @@ r.get("/me", async (req, res) => {
 });
 
 r.put("/me", async (req, res) => {
-  const { name, department, semester, year, selectedSubject } = req.body;
+  const { name, department, semester, year, selectedSubject, facultyCode } = req.body;
   const data = {};
   if (name !== undefined) data.name = name;
   if (department !== undefined) data.department = department;
   if (semester !== undefined) data.semester = Number(semester);
   if (year !== undefined) data.year = Number(year);
   if (selectedSubject !== undefined) data.selectedSubject = selectedSubject;
+  if (facultyCode !== undefined) data.facultyCode = facultyCode;
   const user = await prisma.user.update({
     where: { id: req.user.id },
     data,
@@ -94,11 +96,13 @@ r.get("/classes/today", async (req, res) => {
   const day = now.getDay();
 
   if (req.user.role === "TEACHER") {
+    const where = {
+      teacherId: req.user.id,
+      timetable: { some: { dayOfWeek: day } },
+    };
+    if (req.query.semester) where.semester = Number(req.query.semester);
     const classes = await prisma.class.findMany({
-      where: {
-        teacherId: req.user.id,
-        timetable: { some: { dayOfWeek: day } },
-      },
+      where,
       include: { timetable: true },
     });
     res.json(classes);
@@ -253,13 +257,56 @@ r.post("/announcements", async (req, res) => {
   res.json(announcement);
 });
 
+r.get("/teacher/my-subjects", async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    let subjects = [];
+    if (user.selectedSubject) {
+      try { subjects = JSON.parse(user.selectedSubject); } catch { subjects = []; }
+    }
+    const existingClasses = await prisma.class.findMany({
+      where: { teacherId: req.user.id },
+      select: { semester: true, code: true, subject: true, department: true },
+    });
+    for (const c of existingClasses) {
+      if (!subjects.some((s) => s.code === c.code)) {
+        subjects.push({ semester: c.semester, code: c.code, name: c.subject, department: c.department });
+      }
+    }
+    res.json(subjects);
+  } catch (err) {
+    console.error("my-subjects error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+r.put("/teacher/my-subjects", async (req, res) => {
+  try {
+    const { subjects } = req.body;
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { selectedSubject: JSON.stringify(subjects || []) },
+    });
+    res.json({ success: true, subjects: subjects || [] });
+  } catch (err) {
+    console.error("my-subjects put error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 r.get("/teacher/session-archive", async (req, res) => {
   const sessions = await prisma.session.findMany({
     where: { teacherId: req.user.id, status: "ENDED" },
-    include: { class: { select: { subject: true, code: true } } },
+    include: { class: { select: { subject: true, code: true } }, attendances: true },
     orderBy: { endTime: "desc" },
   });
-  res.json(sessions);
+  res.json(sessions.map((s) => ({
+    id: s.id,
+    class: s.class,
+    attendanceCount: s.attendances.length,
+    startTime: s.startTime,
+    endTime: s.endTime,
+  })));
 });
 
 r.get("/export/:classId", async (req, res) => {

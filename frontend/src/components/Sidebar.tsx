@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useDarkMode } from "@/context/DarkModeContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const teacherItems = [
   { label: "Today's Classes", href: "/teacher/today", color: "from-blue-600 to-indigo-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg> },
@@ -14,6 +15,7 @@ const teacherItems = [
   { label: "Session Archive", href: "/teacher/session-archive", color: "from-cyan-500 to-blue-600", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg> },
   { label: "<75% Attendance", href: "/teacher/low-attendance", color: "from-rose-500 to-red-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg> },
   { label: "Schedule Input", href: "/teacher/schedule", color: "from-teal-500 to-emerald-600", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  { label: "My Subjects", href: "/teacher/subjects", color: "from-green-500 to-emerald-600", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg> },
   { label: "Clear Attendance", href: "/teacher/clear-attendance", color: "from-red-600 to-pink-700", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> },
 ];
 
@@ -33,6 +35,31 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
   const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
+  const [teacherSemesters, setTeacherSemesters] = useState<number[]>([]);
+  const [teacherSem, setTeacherSem] = useState<number | null>(null);
+  const [savingSem, setSavingSem] = useState(false);
+
+  useEffect(() => {
+    if (role === "teacher") {
+      api('/api/timetable/departments').then((d: any[]) => {
+        const sems = Array.from(new Set(d.map((s: any) => s.semester))).sort((a, b) => a - b);
+        setTeacherSemesters(sems);
+        const saved = localStorage.getItem('edutrack_teacher_semester');
+        if (saved && sems.includes(Number(saved))) {
+          setTeacherSem(Number(saved));
+        } else if (sems.length > 0) {
+          setTeacherSem(sems[0]);
+        }
+      });
+    }
+  }, [role]);
+
+  function handleSidebarSemesterChange(sem: number) {
+    setTeacherSem(sem);
+    localStorage.setItem('edutrack_teacher_semester', String(sem));
+    setSavingSem(true);
+    api('/api/me', { method: 'PUT', body: JSON.stringify({ semester: sem }) }).finally(() => setSavingSem(false));
+  }
 
   const items = role === "teacher" ? teacherItems : studentItems;
 
@@ -136,7 +163,31 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
             <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
             <div className="min-w-0">
               <h3 className="font-semibold text-sm text-white truncate">{user?.name || "Welcome"}</h3>
-              <p className="text-xs text-blue-300/70 truncate">{role === "teacher" ? user?.designation : user?.department + " • Sem " + user?.semester}</p>
+              {role === "teacher" ? (
+                teacherSemesters.length > 0 ? (
+                  <div className="relative mt-1">
+                    <select
+                      value={teacherSem ?? ''}
+                      onChange={(e) => handleSidebarSemesterChange(Number(e.target.value))}
+                      className="appearance-none bg-white/10 text-xs text-blue-200 rounded-lg px-2 py-1 pr-6 border border-white/10 w-full cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    >
+                      {teacherSemesters.map((sem) => (
+                        <option key={sem} value={sem} className="text-slate-900">Semester {sem}</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5">
+                      <svg className="w-3 h-3 text-blue-300/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    {savingSem && <span className="text-[10px] text-blue-300/50 ml-1">saving...</span>}
+                  </div>
+                ) : (
+                  <p className="text-xs text-blue-300/70 truncate">{user?.designation || "Teacher"}</p>
+                )
+              ) : (
+                <p className="text-xs text-blue-300/70 truncate">{user?.department + " • Sem " + user?.semester}</p>
+              )}
             </div>
           </div>
         </div>

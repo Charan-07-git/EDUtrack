@@ -8,13 +8,51 @@ import Link from 'next/link';
 export default function Page() {
   const [classes, setClasses] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [semesters, setSemesters] = useState<{ department: string; semester: number }[]>([]);
+  const [selectedSem, setSelectedSem] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api('/api/classes/today').then((d) => {
-      setClasses(d);
-      setLoaded(true);
+    api('/api/timetable/departments').then((d: any[]) => {
+      setSemesters(d);
+      const saved = localStorage.getItem('edutrack_teacher_semester');
+      if (saved && d.some((s: any) => s.semester === Number(saved))) {
+        setSelectedSem(Number(saved));
+      } else if (d.length > 0) {
+        const fromUser = d.find((s: any) => s.semester);
+        setSelectedSem(fromUser?.semester || d[0].semester);
+      }
     });
   }, []);
+
+  useEffect(() => {
+    if (selectedSem) {
+      setLoaded(false);
+      localStorage.setItem('edutrack_teacher_semester', String(selectedSem));
+      api(`/api/classes/today?semester=${selectedSem}`).then((d) => {
+        setClasses(d);
+        setLoaded(true);
+      });
+    }
+  }, [selectedSem]);
+
+  async function saveSemesterToServer(sem: number) {
+    setSaving(true);
+    try {
+      await api('/api/me', {
+        method: 'PUT',
+        body: JSON.stringify({ semester: sem }),
+      });
+    } catch {}
+    setSaving(false);
+  }
+
+  function handleSemesterChange(sem: number) {
+    setSelectedSem(sem);
+    saveSemesterToServer(sem);
+  }
+
+  const uniqueSems = Array.from(new Set(semesters.map((s) => s.semester))).sort((a, b) => a - b);
 
   return (
     <Shell role="teacher" title="Today's Classes">
@@ -39,7 +77,43 @@ export default function Page() {
         </div>
       </div>
 
-      {!loaded ? (
+      {/* Semester Selector */}
+      <div className="card mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-slate-500 dark:text-slate-400">Semester</label>
+            <div className="relative">
+              <select
+                value={selectedSem ?? ''}
+                onChange={(e) => handleSemesterChange(Number(e.target.value))}
+                className="appearance-none bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 cursor-pointer"
+              >
+                <option value="" disabled>Select semester</option>
+                {uniqueSems.map((sem) => (
+                  <option key={sem} value={sem}>Semester {sem}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            {saving && <span className="text-xs text-slate-400">Saving...</span>}
+          </div>
+          <div className="text-xs text-slate-400 dark:text-slate-500">
+            Today • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+      </div>
+
+      {!selectedSem ? (
+        <div className="card text-center py-16">
+          <span className="text-5xl mb-4 block">👆</span>
+          <p className="text-lg font-semibold text-slate-300">Select a semester above</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Choose which semester's classes to view today</p>
+        </div>
+      ) : !loaded ? (
         <div className="card text-center py-16">
           <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-muted">Loading today's classes...</p>

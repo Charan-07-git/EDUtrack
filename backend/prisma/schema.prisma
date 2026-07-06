@@ -31,6 +31,7 @@ model User {
   year           Int?
   selectedSubject String?
   designation    String?
+  facultyCode    String?
   photoUrl       String?
   faceDescriptor Json?
   createdAt      DateTime      @default(now())

@@ -97,14 +97,8 @@ export default function Page() {
   const [setupInfo, setSetupInfo] = useState("");
 
   useEffect(() => {
-    const year = localStorage.getItem("edutrack_year");
-    const sem = localStorage.getItem("edutrack_semester");
-    const sub = localStorage.getItem("edutrack_subject");
-    setSetupInfo(year ? `Year ${year} | Sem ${sem} | ${sub || ''}` : 'Not configured');
-    if (!year || !sem || !sub) {
-      router.replace("/teacher/setup");
-      return;
-    }
+    const savedSem = localStorage.getItem("edutrack_teacher_semester");
+    setSetupInfo(savedSem ? `Semester ${savedSem}` : '');
     api('/api/teacher/dashboard').then(setD);
   }, []);
 

@@ -10,12 +10,7 @@ export const useAuth = () => useContext(C);
 
 function needsSetup(user: any): boolean {
   if (!user) return false;
-  if (user.role === "TEACHER") {
-    const year = user.year || localStorage.getItem("edutrack_year");
-    const sem = user.semester || localStorage.getItem("edutrack_semester");
-    const sub = user.selectedSubject || localStorage.getItem("edutrack_subject");
-    return !year || !sem || !sub;
-  }
+  if (user.role === "TEACHER") return false;
   const year = user.year || localStorage.getItem("edutrack_year");
   const sem = user.semester || localStorage.getItem("edutrack_semester");
   const dept = user.department || localStorage.getItem("edutrack_department");

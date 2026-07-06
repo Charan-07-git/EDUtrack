@@ -67,6 +67,56 @@ r.get("/semesters", async (_req, res) => {
   }
 });
 
+r.get("/by-faculty", async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) return res.status(400).json({ message: "Faculty code required" });
+    const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
+    const semesters = data.default.semesters;
+    const subjects = [];
+    const seen = new Set();
+    for (const [semStr, semData] of Object.entries(semesters)) {
+      const sem = Number(semStr);
+      for (const [day, slots] of Object.entries(semData.timetable)) {
+        for (const slot of slots) {
+          if (slot.faculty === code || (slot.labs && slot.labs.some((l) => l.faculty === code))) {
+            const subjCode = slot.code || (slot.labs && slot.labs.find((l) => l.faculty === code)?.code);
+            if (subjCode && !seen.has(`${sem}-${subjCode}`)) {
+              seen.add(`${sem}-${subjCode}`);
+              const name = semData.subjects[subjCode] || subjCode;
+              subjects.push({ semester: sem, code: subjCode, name, department: data.default.department || "Computer Science" });
+            }
+          }
+        }
+      }
+    }
+    res.json(subjects);
+  } catch (err) {
+    console.error("by-faculty error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+r.get("/available-subjects", async (req, res) => {
+  try {
+    const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
+    const semesters = data.default.semesters;
+    const result = [];
+    for (const [num, info] of Object.entries(semesters)) {
+      const sem = Number(num);
+      const subjects = info.subjects || {};
+      for (const [code, name] of Object.entries(subjects)) {
+        result.push({ semester: sem, code, name, department: data.default.department || "Computer Science" });
+      }
+    }
+    const semFilter = req.query.semester;
+    if (semFilter) return res.json(result.filter((s) => s.semester === Number(semFilter)));
+    res.json(result);
+  } catch {
+    res.status(404).json({ message: "Timetable data not loaded" });
+  }
+});
+
 r.get("/master", async (req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
