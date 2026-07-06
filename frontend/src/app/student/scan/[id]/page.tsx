@@ -4,7 +4,7 @@ import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 
 type Step = 'scan' | 'locating' | 'camera' | 'detecting' | 'confirm' | 'saving' | 'done' | 'error';
 
@@ -49,7 +49,7 @@ export default function Page() {
 
   useEffect(() => {
     if (step !== 'scan') return;
-    const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+    const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 }, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] }, false);
     scannerRef.current = scanner;
     scanner.render(
       (decoded) => {
