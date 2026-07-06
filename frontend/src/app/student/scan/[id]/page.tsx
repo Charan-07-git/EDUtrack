@@ -4,7 +4,7 @@ import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 type Step = 'scan' | 'locating' | 'camera' | 'detecting' | 'confirm' | 'saving' | 'done' | 'error';
 
@@ -28,12 +28,13 @@ export default function Page() {
   const modelsLoaded = useRef(false);
   const faceapiRef = useRef<any>(null);
   const faceRecogReady = useRef(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const storedDescriptorRef = useRef<number[] | null>(null);
   const liveDescriptorRef = useRef<any>(null);
   const [matchPercent, setMatchPercent] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [storedPhotoUrl, setStoredPhotoUrl] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
   const hasStartedFaceRef = useRef(false);
   const cancelledRef = useRef(false);
   const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,42 +48,78 @@ export default function Page() {
     if (step === 'camera' || step === 'detecting') hasStartedFaceRef.current = true;
   }, [step]);
 
-  useEffect(() => {
-    if (step !== 'scan') return;
-    const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 }, supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] }, false);
-    scannerRef.current = scanner;
-    scanner.render(
-      (decoded) => {
-        scanner.clear().catch(() => {});
-        try {
-          const p = JSON.parse(decoded);
-          if (!p.sessionId || !p.token) throw new Error('Invalid QR code');
-          setPayload(p);
-          setStep('locating');
-          setMsg('QR scanned! Getting your location...');
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-              setStep('camera');
-              setMsg('Opening front camera for face verification...');
-            },
-            (err) => {
-              setStep('error');
-              setMsg('Location permission denied. Please enable GPS and try again.');
-            },
-            { timeout: 10000 }
-          );
-        } catch (e: any) {
+  function onQrScanned(decoded: string) {
+    stopCamera();
+    try {
+      const p = JSON.parse(decoded);
+      if (!p.sessionId || !p.token) throw new Error('Invalid QR code');
+      setPayload(p);
+      setStep('locating');
+      setMsg('QR scanned! Getting your location...');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setStep('camera');
+          setMsg('Opening front camera for face verification...');
+        },
+        (err) => {
           setStep('error');
-          setMsg(e.message || 'Invalid QR code');
-        }
-      },
-      () => {}
-    );
+          setMsg('Location permission denied. Please enable GPS and try again.');
+        },
+        { timeout: 10000 }
+      );
+    } catch (e: any) {
+      setStep('error');
+      setMsg(e.message || 'Invalid QR code');
+    }
+  }
+
+  useEffect(() => {
+    if (step === 'scan') {
+      const scanner = new Html5Qrcode('qr-reader');
+      scannerRef.current = scanner;
+    }
     return () => {
-      scanner.clear().catch(() => {});
+      stopCamera();
       scannerRef.current = null;
     };
+  }, [step]);
+
+  async function openCamera() {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+    setScanning(true);
+    setMsg('Opening camera...');
+    try {
+      const cameras = await Html5Qrcode.getCameras();
+      const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment')) || cameras[0];
+      if (!backCam) throw new Error('No camera found');
+      await scanner.start(
+        { deviceId: backCam.id },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onQrScanned,
+        () => {}
+      );
+      setMsg('Point camera at the QR code');
+    } catch (e: any) {
+      setStep('error');
+      setMsg(e?.message || 'Failed to open camera');
+      setScanning(false);
+    }
+  }
+
+  async function stopCamera() {
+    setScanning(false);
+    const scanner = scannerRef.current;
+    if (scanner) {
+      try { await scanner.stop(); } catch {}
+    }
+  }
+
+  useEffect(() => {
+    if (step !== 'scan') {
+      stopCamera();
+    }
   }, [step]);
 
   useEffect(() => {
@@ -330,6 +367,23 @@ export default function Page() {
             </div>
             <div className="p-4">
               <div id="qr-reader" className="rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50" />
+              <div className="mt-4 flex justify-center gap-3">
+                {!scanning ? (
+                  <button
+                    onClick={openCamera}
+                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 text-sm"
+                  >
+                    Open Camera
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopCamera}
+                    className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-500/30 text-sm"
+                  >
+                    Stop Camera
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -511,31 +565,7 @@ export default function Page() {
           80% { transform: translateX(5px); }
         }
         #qr-reader video { border-radius: 0.75rem !important; }
-        #qr-reader [data-video-container] { display: flex !important; justify-content: center !important; }
-        #qr-reader__dashboard_section_csr { display: none !important; }
-        #qr-reader__dashboard_section_sw_link { display: none !important; }
-        #qr-reader__status_span { display: none !important; }
-        #qr-reader img { display: none !important; }
-        #qr-reader__scan_region { flex: 1 !important; }
-        #qr-reader__dashboard_section { padding: 0 !important; }
-        #qr-reader__dashboard_section_camera select {
-          width: 100% !important;
-          padding: 0.5rem 1rem !important;
-          border-radius: 0.75rem !important;
-          font-size: 0.875rem !important;
-          font-weight: 500 !important;
-          border: 1px solid #e2e8f0 !important;
-          background: #f8fafc !important;
-          color: #334155 !important;
-        }
-        .dark #qr-reader__dashboard_section_camera select {
-          background: #334155 !important;
-          border-color: #475569 !important;
-          color: #e2e8f0 !important;
-        }
-        #qr-reader__dashboard_section_camera button {
-          display: none !important;
-        }
+        #qr-reader img[alt="Info icon"] { display: none !important; }
       `}</style>
     </Shell>
   );
