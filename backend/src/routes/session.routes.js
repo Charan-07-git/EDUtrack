@@ -41,18 +41,32 @@ r.get("/archive", async (req, res) => {
 });
 
 r.get("/:sessionId/students", async (req, res) => {
+  const session = await prisma.session.findUnique({
+    where: { id: req.params.sessionId },
+    include: { class: { select: { department: true, semester: true } } },
+  });
+  if (!session) return res.status(404).json({ message: "Session not found" });
   const students = await prisma.user.findMany({
-    where: { role: "STUDENT" },
+    where: {
+      role: "STUDENT",
+      department: session.class.department,
+      semester: session.class.semester,
+    },
     select: { id: true, name: true, department: true, semester: true },
+    orderBy: { name: "asc" },
   });
   const attendances = await prisma.attendance.findMany({
     where: { sessionId: req.params.sessionId },
-    select: { studentId: true },
+    select: { studentId: true, markedAt: true },
   });
-  const presentIds = new Set(attendances.map((a) => a.studentId));
+  const presentMap = new Map(attendances.map((a) => [a.studentId, a.markedAt]));
   res.json(students.map((s) => ({
-    ...s,
-    isPresent: presentIds.has(s.id),
+    id: s.id,
+    name: s.name,
+    department: s.department,
+    semester: s.semester,
+    isPresent: presentMap.has(s.id),
+    markedAt: presentMap.get(s.id) || null,
   })));
 });
 

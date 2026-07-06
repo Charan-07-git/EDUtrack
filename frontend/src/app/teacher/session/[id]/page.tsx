@@ -22,6 +22,9 @@ export default function Page() {
   const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [attendanceCount, setAttendanceCount] = useState(0);
+  const [students, setStudents] = useState<any[]>([]);
+  const [showAbsent, setShowAbsent] = useState(false);
+  const [studentsLoaded, setStudentsLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
 
@@ -43,6 +46,15 @@ export default function Page() {
   }, [id]);
 
   useEffect(() => {
+    if (session?.id && (session.status === 'ACTIVE' || session.status === 'QR_ACTIVE' || session.status === 'ENDED')) {
+      api(`/api/sessions/${session.id}/students`).then((d) => {
+        setStudents(d);
+        setStudentsLoaded(true);
+      });
+    }
+  }, [session?.id, session?.status]);
+
+  useEffect(() => {
     if (session?.id && (session.status === 'ACTIVE' || session.status === 'QR_ACTIVE')) {
       const socket = io(API);
       socketRef.current = socket;
@@ -50,6 +62,8 @@ export default function Page() {
       socket.on('attendance:count', async () => {
         const d = await api(`/api/sessions/${session.id}/count`);
         setAttendanceCount(d.count);
+        const s = await api(`/api/sessions/${session.id}/students`);
+        setStudents(s);
       });
       return () => {
         socket.disconnect();
@@ -121,7 +135,7 @@ export default function Page() {
       <BackButton href="/teacher/today" label="Back to Today's Classes" />
 
       {cls ? (
-        <div className="mt-6 grid gap-6 max-w-3xl">
+        <div className="mt-6 max-w-3xl space-y-6">
           {/* Class Header */}
           <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
             <div className="flex items-center gap-4">
@@ -258,6 +272,69 @@ export default function Page() {
               </div>
             </div>
           )}
+
+          {/* Student Attendance List */}
+          {(status === 'ACTIVE' || status === 'QR_ACTIVE' || status === 'ENDED') && (
+            <div className="card" style={{ animation: 'fadeUp 0.5s ease-out 0.5s both' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Attendance List</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowAbsent(false)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      !showAbsent ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                    }`}
+                  >
+                    Present ({students.filter(s => s.isPresent).length})
+                  </button>
+                  <button
+                    onClick={() => setShowAbsent(true)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      showAbsent ? 'bg-red-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                    }`}
+                  >
+                    Absent ({students.filter(s => !s.isPresent).length})
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1 max-h-80 overflow-y-auto">
+                {studentsLoaded && students.length === 0 && (
+                  <p className="text-sm text-slate-400 text-center py-8">No students found for this class</p>
+                )}
+                {students
+                  .filter(s => showAbsent ? !s.isPresent : s.isPresent)
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white ${
+                          s.isPresent ? 'bg-emerald-500' : 'bg-slate-400'
+                        }`}>
+                          {s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{s.name}</p>
+                          {s.isPresent && s.markedAt && (
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                              {new Date(s.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {s.isPresent ? (
+                          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">Present</span>
+                        ) : (
+                          <span className="text-[10px] font-medium text-red-500 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Absent</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-16 text-center">
@@ -267,24 +344,10 @@ export default function Page() {
       )}
 
       <style>{`
-        @keyframes stepIn {
-          from { opacity: 0; transform: scale(0.5); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-          from { opacity: 0; transform: scale(0.8); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes bounceIn {
-          0% { opacity: 0; transform: scale(0.3); }
-          50% { transform: scale(1.05); }
-          70% { transform: scale(0.9); }
-          100% { opacity: 1; transform: scale(1); }
-        }
+        @keyframes stepIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
       `}</style>
     </Shell>
   );
