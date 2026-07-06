@@ -2,7 +2,7 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Page() {
   const [allSubjects, setAllSubjects] = useState<any[]>([]);
@@ -13,6 +13,42 @@ export default function Page() {
   const [facultyCode, setFacultyCode] = useState('');
   const [facultySaving, setFacultySaving] = useState(false);
   const [autoPopulating, setAutoPopulating] = useState(false);
+  const [facultyCodes, setFacultyCodes] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api('/api/timetable/faculty-codes').then(setFacultyCodes).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  function handleCodeInput(val: string) {
+    const upper = val.toUpperCase();
+    setFacultyCode(upper);
+    if (upper.length > 0) {
+      const matches = facultyCodes.filter((f) => f.code.startsWith(upper) || f.name.toUpperCase().includes(upper));
+      setSuggestions(matches.slice(0, 10));
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }
+
+  function selectSuggestion(code: string) {
+    setFacultyCode(code);
+    setShowSuggestions(false);
+  }
 
   useEffect(() => {
     Promise.all([
@@ -104,15 +140,34 @@ export default function Page() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
               Enter your faculty short code (e.g. GUR, NN, JU) as shown in the timetable to auto-populate your subjects.
             </p>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                placeholder="e.g. GUR"
-                value={facultyCode}
-                onChange={(e) => setFacultyCode(e.target.value.toUpperCase())}
-                className="w-32 px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500 uppercase tracking-wider"
-                maxLength={5}
-              />
+            <div className="flex items-center gap-3 relative">
+              <div ref={wrapperRef} className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. GUR"
+                  value={facultyCode}
+                  onChange={(e) => handleCodeInput(e.target.value)}
+                  onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
+                  className="w-32 px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500 uppercase tracking-wider"
+                  maxLength={5}
+                  autoComplete="off"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
+                    {suggestions.map((f) => (
+                      <button
+                        key={f.code}
+                        type="button"
+                        onClick={() => selectSuggestion(f.code)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 last:border-0"
+                      >
+                        <span className="font-bold text-blue-600 dark:text-blue-400 w-12">{f.code}</span>
+                        <span className="text-slate-600 dark:text-slate-400 truncate">{f.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={autoPopulate}
                 disabled={!facultyCode || autoPopulating}

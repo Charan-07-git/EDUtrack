@@ -105,6 +105,27 @@ r.get("/by-faculty", async (req, res) => {
   }
 });
 
+r.get("/faculty-codes", async (_req, res) => {
+  try {
+    const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
+    const semesters = data.default.semesters;
+    const codes = {};
+    for (const semData of Object.values(semesters)) {
+      for (const slots of Object.values(semData.timetable)) {
+        for (const slot of slots) {
+          if (slot.facultyCode && !codes[slot.facultyCode]) {
+            codes[slot.facultyCode] = slot.faculty;
+          }
+        }
+      }
+    }
+    const result = Object.entries(codes).map(([code, name]) => ({ code, name }));
+    res.json(result);
+  } catch {
+    res.status(404).json({ message: "Timetable data not loaded" });
+  }
+});
+
 r.get("/available-subjects", async (req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
