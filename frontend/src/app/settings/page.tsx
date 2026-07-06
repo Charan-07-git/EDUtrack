@@ -2,8 +2,9 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   1: [1, 2],
@@ -25,6 +26,11 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -87,6 +93,44 @@ export default function Page() {
       setMsg(err.message || 'Failed to change password');
     }
     setSaving(false);
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { setMsg('Photo must be under 2MB'); return; }
+    if (!file.type.startsWith('image/')) { setMsg('Please select an image file'); return; }
+    setUploading(true);
+    setMsg('');
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const token = localStorage.getItem("edutrack_token");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ photoData: reader.result, mimeType: file.type }),
+        });
+        if (!res.ok) { const d = await res.json(); setMsg(d.message || 'Failed to upload'); setUploading(false); return; }
+        setMsg('Photo updated successfully');
+        setUploading(false);
+        window.location.reload();
+      };
+      reader.readAsDataURL(file);
+    } catch { setMsg('Failed to upload'); setUploading(false); }
+  }
+
+  async function deleteAccount() {
+    if (confirmDelete !== 'DELETE') return;
+    setDeleting(true);
+    setMsg('');
+    try {
+      await api('/api/me', { method: 'DELETE' });
+      logout();
+      router.push('/login');
+    } catch (err: any) {
+      setMsg(err.message || 'Failed to delete account');
+      setDeleting(false);
+    }
   }
 
   return (
@@ -210,6 +254,59 @@ export default function Page() {
               Update Password
             </button>
           </form>
+        </div>
+
+        {/* Profile Photo */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.2s both' }}>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Profile Photo</h3>
+          <div className="flex items-center gap-5">
+            <div className="h-20 w-20 rounded-2xl overflow-hidden ring-2 ring-blue-400/30">
+              <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="h-full w-full object-cover" alt="Profile" />
+            </div>
+            <div>
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 text-sm"
+              >
+                {uploading ? 'Uploading...' : 'Change Photo'}
+              </button>
+              <p className="text-xs text-slate-400 mt-1.5">Max 2MB, JPEG/PNG</p>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+            </div>
+          </div>
+        </div>
+
+        {/* Delete Account */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-red-200 dark:border-red-900/50" style={{ animation: 'fadeUp 0.4s ease-out 0.25s both' }}>
+          <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">Delete Account</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
+          {deleting ? (
+            <div className="flex items-center gap-3 py-2">
+              <div className="animate-spin w-5 h-5 border-4 border-red-500 border-t-transparent rounded-full" />
+              <p className="text-sm font-medium text-red-600">Deleting account...</p>
+            </div>
+          ) : (
+            <div>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Type <strong>DELETE</strong> to confirm:</label>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={confirmDelete}
+                  onChange={(e) => setConfirmDelete(e.target.value)}
+                  placeholder="Type DELETE"
+                  className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                />
+                <button
+                  onClick={deleteAccount}
+                  disabled={confirmDelete !== 'DELETE'}
+                  className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-red-700 transition-all disabled:opacity-50 text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
         </div>
           </>
         )}

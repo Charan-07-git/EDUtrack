@@ -33,6 +33,17 @@ r.put("/me", async (req, res) => {
   res.json(user);
 });
 
+r.delete("/me", async (req, res) => {
+  await prisma.announcement.deleteMany({ where: { teacherId: req.user.id } });
+  await prisma.attendance.deleteMany({ where: { studentId: req.user.id } });
+  await prisma.session.deleteMany({ where: { teacherId: req.user.id } });
+  await prisma.timetable.deleteMany({ where: { class: { teacherId: req.user.id } } });
+  await prisma.class.deleteMany({ where: { teacherId: req.user.id } });
+  await prisma.goal.deleteMany({ where: { studentId: req.user.id } });
+  await prisma.user.delete({ where: { id: req.user.id } });
+  res.json({ success: true });
+});
+
 r.put("/me/password", async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });

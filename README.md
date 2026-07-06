@@ -148,6 +148,12 @@ edutrack/
 
 ## Changelog
 
+### v0.6.0 (2026-07-06)
+- **Settings**: Added Profile Photo upload/change section with file picker
+- **Settings**: Added Delete Account section with confirmation flow ("DELETE" prompt)
+- **Backend**: Added `DELETE /api/me` endpoint with cascading cleanup (announcements, attendance, sessions, classes, goals)
+- **README**: Maintained with full feature list, changelog, and roadmap
+
 ### v0.5.0 (2026-07-06)
 - Removed Schedule Input and Clear Attendance tiles from teacher dashboard (kept in sidebar nav)
 - Cleaned git history: removed node_modules from all commits, pushed clean single-commit history to GitHub
@@ -201,6 +207,7 @@ edutrack/
 
 ### v1.0 — Stable Release (In Progress)
 - [x] Remove deprecated dashboard tiles
+- [x] Settings: profile photo upload and account deletion
 - [ ] API error boundary and toast notifications
 - [ ] Pagination for session archive
 - [ ] Export reports to PDF
