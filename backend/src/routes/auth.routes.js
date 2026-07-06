@@ -24,6 +24,8 @@ r.post("/signup", async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
+    const semNum = semester ? Number(semester) : null;
+    const year = semNum ? Math.ceil(semNum / 2) : null;
     const user = await prisma.user.create({
       data: {
         name,
@@ -31,7 +33,8 @@ r.post("/signup", async (req, res) => {
         password: hash,
         role,
         department,
-        semester: semester ? Number(semester) : null,
+        semester: semNum,
+        year,
         designation: role === "TEACHER" ? "Assistant Professor" : null,
       },
     });

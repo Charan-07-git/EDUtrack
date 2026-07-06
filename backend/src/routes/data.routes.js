@@ -16,6 +16,8 @@ r.get("/me", async (req, res) => {
       role: true,
       department: true,
       semester: true,
+      year: true,
+      selectedSubject: true,
       designation: true,
       photoUrl: true,
     },
@@ -24,11 +26,17 @@ r.get("/me", async (req, res) => {
 });
 
 r.put("/me", async (req, res) => {
-  const { name, department, semester } = req.body;
+  const { name, department, semester, year, selectedSubject } = req.body;
+  const data = {};
+  if (name !== undefined) data.name = name;
+  if (department !== undefined) data.department = department;
+  if (semester !== undefined) data.semester = Number(semester);
+  if (year !== undefined) data.year = Number(year);
+  if (selectedSubject !== undefined) data.selectedSubject = selectedSubject;
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: { name, department, semester: semester ? Number(semester) : undefined },
-    select: { id: true, name: true, email: true, role: true, department: true, semester: true, photoUrl: true },
+    data,
+    select: { id: true, name: true, email: true, role: true, department: true, semester: true, year: true, selectedSubject: true, photoUrl: true },
   });
   res.json(user);
 });

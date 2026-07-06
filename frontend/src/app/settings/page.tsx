@@ -46,10 +46,9 @@ export default function Page() {
     if (user) {
       setName(user.name || '');
       setDepartment(user.department || '');
-      setSemester(user.semester || 5);
-      setYear(Number(localStorage.getItem("edutrack_year")) || 3);
-      setSemester(Number(localStorage.getItem("edutrack_semester")) || 5);
-      setSubject(localStorage.getItem("edutrack_subject") || '');
+      setSemester(user.semester || Number(localStorage.getItem("edutrack_semester")) || 5);
+      setYear(user.year || Number(localStorage.getItem("edutrack_year")) || 3);
+      setSubject(user.selectedSubject || localStorage.getItem("edutrack_subject") || '');
       api("/api/timetable/semesters").then((list: any[]) => {
         const sem = list.find((s: any) => s.semester === (user.semester || Number(localStorage.getItem("edutrack_semester"))));
         if (sem) setSubjects(sem.subjects);
@@ -65,7 +64,7 @@ export default function Page() {
     try {
       await api('/api/me', {
         method: 'PUT',
-        body: JSON.stringify({ name, department, semester }),
+        body: JSON.stringify({ name, department, semester, year }),
       });
       localStorage.setItem("edutrack_year", String(year));
       localStorage.setItem("edutrack_semester", String(semester));

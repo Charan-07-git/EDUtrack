@@ -10,13 +10,15 @@ export const useAuth = () => useContext(C);
 
 function needsSetup(user: any): boolean {
   if (!user) return false;
-  const year = localStorage.getItem("edutrack_year");
-  const sem = localStorage.getItem("edutrack_semester");
   if (user.role === "TEACHER") {
-    const sub = localStorage.getItem("edutrack_subject");
+    const year = user.year || localStorage.getItem("edutrack_year");
+    const sem = user.semester || localStorage.getItem("edutrack_semester");
+    const sub = user.selectedSubject || localStorage.getItem("edutrack_subject");
     return !year || !sem || !sub;
   }
-  const dept = localStorage.getItem("edutrack_department");
+  const year = user.year || localStorage.getItem("edutrack_year");
+  const sem = user.semester || localStorage.getItem("edutrack_semester");
+  const dept = user.department || localStorage.getItem("edutrack_department");
   return !year || !sem || !dept;
 }
 
@@ -59,17 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     localStorage.setItem("edutrack_token", d.token);
     setUser(d.user);
-    router.replace(
-      d.user.role === "TEACHER" ? "/teacher/setup" : "/student/setup"
-    );
+    if (needsSetup(d.user)) {
+      router.replace(d.user.role === "TEACHER" ? "/teacher/setup" : "/student/setup");
+    } else {
+      router.replace(
+        d.user.role === "TEACHER" ? "/teacher/dashboard" : "/student/dashboard"
+      );
+    }
   }
 
   function logout() {
     localStorage.removeItem("edutrack_token");
-    localStorage.removeItem("edutrack_year");
-    localStorage.removeItem("edutrack_semester");
-    localStorage.removeItem("edutrack_subject");
-    localStorage.removeItem("edutrack_department");
     setUser(null);
     router.push("/login");
   }

@@ -52,6 +52,10 @@ export default function TeacherSetupPage() {
     if (!year || !semester || !subject) return;
     setLoading(true);
     try {
+      await api("/api/me", {
+        method: "PUT",
+        body: JSON.stringify({ year, semester, selectedSubject: subject, department: "Computer Science" }),
+      });
       localStorage.setItem("edutrack_year", String(year));
       localStorage.setItem("edutrack_semester", String(semester));
       localStorage.setItem("edutrack_subject", subject);

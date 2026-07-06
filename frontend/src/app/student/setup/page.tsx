@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   1: [1, 2],
@@ -50,6 +51,10 @@ export default function StudentSetupPage() {
     if (!year || !semester || !department) return;
     setLoading(true);
     try {
+      await api("/api/me", {
+        method: "PUT",
+        body: JSON.stringify({ year, department, semester }),
+      });
       localStorage.setItem("edutrack_year", String(year));
       localStorage.setItem("edutrack_department", department);
       localStorage.setItem("edutrack_semester", String(semester));
