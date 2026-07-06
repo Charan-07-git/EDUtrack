@@ -140,7 +140,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
       {mobileOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-screen w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 transition-transform duration-300 overflow-y-auto scrollbar-hide ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 transition-transform duration-300 overflow-y-auto scrollbar-hide ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo */}
         <Link href={`/${role}/dashboard`} className="flex items-center gap-2 mb-3">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -260,7 +260,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
             </svg>
             {dark ? "Light Mode" : "Dark Mode"}
           </button>
-          <button onClick={logout} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
+          <button onClick={() => { setMobileOpen(false); logout(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
             <svg className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m0 0H7m6 4a5 5 0 100-10 5 5 0 000 10z" />
             </svg>
