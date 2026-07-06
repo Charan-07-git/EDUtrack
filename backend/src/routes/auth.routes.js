@@ -64,15 +64,11 @@ r.post("/login", async (req, res) => {
 });
 
 r.post("/upload-photo", auth, async (req, res) => {
-  const { photoData, mimeType } = req.body;
-
-  if (!photoData) {
-    return res.status(400).json({ message: "No photo data provided" });
-  }
+  const { photoData } = req.body;
 
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: { photoUrl: photoData },
+    data: { photoUrl: photoData || null },
   });
 
   res.json({ user });

@@ -148,11 +148,16 @@ edutrack/
 
 ## Changelog
 
-### v0.6.0 (2026-07-06)
+### v0.7.0 (2026-07-06)
+- **Sidebar**: Tapping profile photo opens modal with full-size preview and Change/Delete options
+- **Sidebar**: Added client-side image compression (400px max, JPEG 0.7 quality) before upload
+- **Backend**: Increased JSON body limit to 20MB; `upload-photo` now accepts `null` to clear photo
 - **Settings**: Added Profile Photo upload/change section with file picker
 - **Settings**: Added Delete Account section with confirmation flow ("DELETE" prompt)
-- **Backend**: Added `DELETE /api/me` endpoint with cascading cleanup (announcements, attendance, sessions, classes, goals)
-- **README**: Maintained with full feature list, changelog, and roadmap
+- **Backend**: Added `DELETE /api/me` endpoint with cascading cleanup
+
+### v0.6.0 (2026-07-06)
+- **Settings**: Photo upload, account deletion
 
 ### v0.5.0 (2026-07-06)
 - Removed Schedule Input and Clear Attendance tiles from teacher dashboard (kept in sidebar nav)

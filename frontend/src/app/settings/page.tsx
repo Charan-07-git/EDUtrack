@@ -95,20 +95,37 @@ export default function Page() {
     setSaving(false);
   }
 
+  function compressImage(dataUrl: string, maxW = 400, quality = 0.7): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        let { width, height } = img;
+        if (width > maxW) { height = (maxW / width) * height; width = maxW; }
+        canvas.width = width; canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  }
+
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { setMsg('Photo must be under 2MB'); return; }
+    if (file.size > 10 * 1024 * 1024) { setMsg('Photo must be under 10MB'); return; }
     if (!file.type.startsWith('image/')) { setMsg('Please select an image file'); return; }
     setUploading(true);
     setMsg('');
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
         const token = localStorage.getItem("edutrack_token");
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ photoData: reader.result, mimeType: file.type }),
+          body: JSON.stringify({ photoData: compressed, mimeType: 'image/jpeg' }),
         });
         if (!res.ok) { const d = await res.json(); setMsg(d.message || 'Failed to upload'); setUploading(false); return; }
         setMsg('Photo updated successfully');

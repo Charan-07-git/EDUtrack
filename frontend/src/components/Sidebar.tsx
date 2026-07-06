@@ -29,23 +29,43 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
   const { user, logout } = useAuth();
   const { dark, toggle } = useDarkMode();
   const [uploading, setUploading] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [photoModal, setPhotoModal] = useState(false);
 
   const items = role === "teacher" ? teacherItems : studentItems;
+
+  function compressImage(dataUrl: string, maxW = 400, quality = 0.7): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        let { width, height } = img;
+        if (width > maxW) { height = (maxW / width) * height; width = maxW; }
+        canvas.width = width; canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("Photo must be under 2MB"); return; }
+    if (file.size > 10 * 1024 * 1024) { alert("Photo must be under 10MB"); return; }
     if (!file.type.startsWith("image/")) { alert("Please select an image file"); return; }
     setUploading(true);
+    setPhotoModal(false);
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
         const token = localStorage.getItem("edutrack_token");
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ photoData: reader.result, mimeType: file.type }),
+          body: JSON.stringify({ photoData: compressed, mimeType: "image/jpeg" }),
         });
         if (!res.ok) { const d = await res.json(); alert(d.message || "Failed"); setUploading(false); return; }
         const d = await res.json();
@@ -55,6 +75,22 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
       };
       reader.readAsDataURL(file);
     } catch { alert("Failed"); setUploading(false); }
+  }
+
+  async function deletePhoto() {
+    setDeletingPhoto(true);
+    try {
+      const token = localStorage.getItem("edutrack_token");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ photoData: null }),
+      });
+      if (!res.ok) { alert("Failed to delete photo"); setDeletingPhoto(false); return; }
+      if (user) user.photoUrl = null;
+      setDeletingPhoto(false);
+      setPhotoModal(false);
+      window.location.reload();
+    } catch { alert("Failed"); setDeletingPhoto(false); }
   }
 
   return (
@@ -88,12 +124,12 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
         {/* User Card */}
         <div className="rounded-2xl bg-gradient-to-br from-white/10 to-white/5 p-3 border border-white/10 backdrop-blur-sm shadow-inner shadow-white/5">
           <div className="flex items-center gap-2">
-            <div className="relative group cursor-pointer shrink-0" onClick={() => document.getElementById("photo-upload")?.click()}>
+            <div className="relative group cursor-pointer shrink-0" onClick={() => setPhotoModal(true)}>
               <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-blue-400/30 group-hover:ring-blue-400 transition-all">
                 <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="h-full w-full object-cover" alt="Profile" />
               </div>
               <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                {uploading ? <svg className="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> : <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
               </div>
             </div>
             <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
@@ -180,6 +216,41 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
           </button>
         </div>
       </aside>
+      {/* Photo Modal */}
+      {photoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(false)}>
+          <div className="bg-slate-900 rounded-2xl p-4 max-w-sm w-full mx-4 shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center mb-4">
+              <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="w-48 h-48 rounded-2xl object-cover ring-4 ring-blue-500/30" alt="Profile" />
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => document.getElementById("photo-upload")?.click()}
+                disabled={uploading}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 text-sm"
+              >
+                {uploading ? "Uploading..." : "Change Photo"}
+              </button>
+              {user?.photoUrl && (
+                <button
+                  onClick={deletePhoto}
+                  disabled={deletingPhoto}
+                  className="w-full py-3 rounded-xl bg-red-600/20 text-red-400 font-semibold hover:bg-red-600/30 transition-all disabled:opacity-50 text-sm"
+                >
+                  {deletingPhoto ? "Deleting..." : "Delete Photo"}
+                </button>
+              )}
+              <button
+                onClick={() => setPhotoModal(false)}
+                className="w-full py-3 rounded-xl bg-white/5 text-slate-300 font-semibold hover:bg-white/10 transition-all text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

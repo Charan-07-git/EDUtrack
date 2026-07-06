@@ -33,7 +33,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "20mb" }));
 
 app.get("/health", (_, res) =>
   res.json({ ok: true, name: "EDUTrack API" })
