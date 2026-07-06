@@ -13,6 +13,7 @@ export default function LoginPage() {
     name: "",
     department: "Computer Science",
     semester: 5,
+    rollNumber: "",
   });
   const [photo, setPhoto] = useState("");
   const [remember, setRemember] = useState(false);
@@ -33,7 +34,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   function clearForm() {
-    setForm({ email: "", password: "", name: "", department: "Computer Science", semester: 5 });
+    setForm({ email: "", password: "", name: "", department: "Computer Science", semester: 5, rollNumber: "" });
     setPhoto("");
     setErr("");
     setShowPassword(false);
@@ -49,7 +50,9 @@ export default function LoginPage() {
     setErr("");
     try {
       if (mode === "login") {
-        await login(form.email, form.password, role);
+        const id = role === "STUDENT" ? form.rollNumber : form.email;
+        if (!id) { setErr("Please enter your " + (role === "STUDENT" ? "roll number" : "email")); return; }
+        await login(id, form.password, role);
       } else {
         await signup({ ...form, role, photo });
       }
@@ -178,16 +181,28 @@ export default function LoginPage() {
               </>
             )}
 
-            {/* EMAIL */}
-            <input
-              type="email"
-              placeholder="Email Address"
-              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all duration-200 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 hover:border-gray-300 dark:hover:border-slate-500"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-              autoComplete="off"
-            />
+            {/* ROLL NUMBER (student) / EMAIL (teacher) */}
+            {role === "STUDENT" ? (
+              <input
+                type="text"
+                placeholder="100523733..."
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all duration-200 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 hover:border-gray-300 dark:hover:border-slate-500"
+                value={form.rollNumber}
+                onChange={(e) => setForm({ ...form, rollNumber: e.target.value })}
+                required
+                autoComplete="off"
+              />
+            ) : (
+              <input
+                type="email"
+                placeholder="Email Address"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all duration-200 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 hover:border-gray-300 dark:hover:border-slate-500"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+                autoComplete="off"
+              />
+            )}
 
             {/* PASSWORD */}
             <div className="relative">
