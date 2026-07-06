@@ -121,11 +121,11 @@ r.get("/faculty-codes", async (_req, res) => {
           if (slot.facultyCode && !codes[slot.facultyCode]) {
             codes[slot.facultyCode] = { name: slot.faculty, prefix: extractPrefix(slot.faculty) };
           }
-        }
-        if (slot.labs) {
-          for (const lab of slot.labs) {
-            if (lab.facultyCode && !codes[lab.facultyCode]) {
-              codes[lab.facultyCode] = { name: lab.faculty, prefix: extractPrefix(lab.faculty) };
+          if (slot.labs) {
+            for (const lab of slot.labs) {
+              if (lab.facultyCode && !codes[lab.facultyCode]) {
+                codes[lab.facultyCode] = { name: lab.faculty, prefix: extractPrefix(lab.faculty) };
+              }
             }
           }
         }
