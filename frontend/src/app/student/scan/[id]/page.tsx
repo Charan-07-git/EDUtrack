@@ -66,9 +66,9 @@ export default function Page() {
               setStep('camera');
               setMsg('Opening front camera for face verification...');
             },
-            () => {
-              setStep('camera');
-              setMsg('Location unavailable. Face verification only...');
+            (err) => {
+              setStep('error');
+              setMsg('Location permission denied. Please enable GPS and try again.');
             },
             { timeout: 10000 }
           );
@@ -125,7 +125,7 @@ export default function Page() {
 
         if (!cancelled) {
           setStep('detecting');
-          setMsg(storedDescriptorRef.current ? 'Detecting face for verification...' : 'First time! Take a clear selfie...');
+          setMsg(storedDescriptorRef.current ? 'Detecting face for verification...' : 'First-time registration! Look directly at the camera with good lighting');
           detectFace();
         }
       } catch (e: any) {
@@ -393,12 +393,12 @@ export default function Page() {
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-white">
-                {matchPercent !== null ? `Face Verified (${matchPercent}% match)` : 'Clear Selfie Required'}
+                {matchPercent !== null ? `Face Verified (${matchPercent}% match)` : 'Face Registration - Clear Selfie Required'}
               </h3>
               <p className="text-emerald-200 text-xs mt-1">
                 {matchPercent !== null
                   ? 'Your face matches the stored record'
-                  : 'This photo will be stored as your face reference'}
+                  : 'This photo will be used to create your face profile. Future attendance will verify against it.'}
               </p>
             </div>
             <div className="p-6 text-center">
@@ -410,7 +410,7 @@ export default function Page() {
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                 {matchPercent !== null
                   ? 'Tap Confirm to mark your attendance'
-                  : 'Make sure your face is clearly visible and well-lit'}
+                  : 'Ensure your face is clearly visible. This will be saved as your face reference for future attendance.'}
               </p>
               {storedPhotoUrl && (
                 <div className="flex items-center justify-center gap-2 mb-4">
