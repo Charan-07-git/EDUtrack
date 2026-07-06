@@ -226,7 +226,6 @@ export default function Page() {
 
       liveDescriptorRef.current = detection.descriptor;
       setMsg('Face detected! Verifying...');
-      await capturePhoto();
 
       if (cancelledRef.current) return;
 
@@ -237,6 +236,8 @@ export default function Page() {
         setMatchPercent(percent);
 
         if (distance < 0.6) {
+          await capturePhoto();
+          if (cancelledRef.current) return;
           setMsg(`Face verified! Match: ${percent}%`);
           setStep('confirm');
         } else {
@@ -247,6 +248,7 @@ export default function Page() {
           }, 2000);
         }
       } else {
+        await capturePhoto();
         setStep('error');
         setMsg('Face recognition unavailable. Please try again later.');
       }

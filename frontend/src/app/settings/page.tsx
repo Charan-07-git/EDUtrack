@@ -388,32 +388,73 @@ function FaceRegisterCard() {
     setCameraOpen(false);
   }
 
+  function compressImage(dataUrl: string, maxW = 400, quality = 0.6): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        let { width, height } = img;
+        if (width > maxW) { height = (maxW / width) * height; width = maxW; }
+        canvas.width = width; canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  async function dataUrlToCanvas(dataUrl: string): Promise<HTMLCanvasElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d')!.drawImage(img, 0, 0);
+        resolve(c);
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
   async function save() {
     if (photos.length < 6) return;
     setProcessing(true);
     setMsg('');
     try {
       const faceapi = await import('face-api.js');
+      console.log('[FaceRegister] Loading models...');
       await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
       await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
       await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+      console.log('[FaceRegister] Models loaded');
 
       const descriptors: Float32Array[] = [];
-      for (const p of photos) {
+      for (let i = 0; i < photos.length; i++) {
         try {
-          const img = await faceapi.fetchImage(p);
-          const det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
+          const canvas = await dataUrlToCanvas(photos[i]);
+          const det = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
             .withFaceLandmarks().withFaceDescriptor();
-          if (det?.descriptor) descriptors.push(det.descriptor);
-        } catch {}
+          if (det?.descriptor) {
+            descriptors.push(det.descriptor);
+            console.log(`[FaceRegister] Photo ${i + 1}: face detected`);
+          } else {
+            console.log(`[FaceRegister] Photo ${i + 1}: no face`);
+          }
+        } catch (e) {
+          console.error(`[FaceRegister] Photo ${i + 1} error:`, e);
+        }
       }
 
       if (descriptors.length < 3) {
-        setMsg('Could not detect face clearly in enough photos. Please retake with better lighting.');
+        setMsg(`Could not detect face clearly in enough photos (${descriptors.length}/3 minimum). Please retake with better lighting.`);
         setProcessing(false);
         return;
       }
 
+      console.log(`[FaceRegister] Computing average of ${descriptors.length} descriptors`);
       const avg = new Float32Array(128);
       for (const d of descriptors) {
         for (let i = 0; i < 128; i++) avg[i] += d[i];
@@ -422,17 +463,26 @@ function FaceRegisterCard() {
 
       setSaving(true);
       closeCamera();
-      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photos[photos.length - 1] }) });
+
+      const compressedPhoto = await compressImage(photos[photos.length - 1], 400, 0.6);
+      console.log('[FaceRegister] Saving to backend...');
+      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: compressedPhoto }) });
       await api('/api/me/face-descriptor', {
         method: 'PUT',
-        body: JSON.stringify({ faceDescriptor: Array.from(avg), photoUrl: photos[photos.length - 1] }),
+        body: JSON.stringify({ faceDescriptor: Array.from(avg), photoUrl: compressedPhoto }),
       });
+      console.log('[FaceRegister] Done');
+      setProcessing(false);
+      setSaving(false);
       setMsg('Face registered successfully!');
       setPhotos([]);
       setTimeout(() => window.location.reload(), 1500);
-    } catch { setMsg('Failed to process face data'); }
-    setProcessing(false);
-    setSaving(false);
+    } catch (e: any) {
+      console.error('[FaceRegister] Error:', e);
+      setMsg(e?.message || 'Failed to process face data');
+      setProcessing(false);
+      setSaving(false);
+    }
   }
 
   function removePhoto(idx: number) {
