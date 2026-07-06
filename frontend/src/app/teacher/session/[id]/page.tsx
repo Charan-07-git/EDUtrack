@@ -27,6 +27,7 @@ export default function Page() {
   const [studentsLoaded, setStudentsLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -65,9 +66,23 @@ export default function Page() {
         const s = await api(`/api/sessions/${session.id}/students`);
         setStudents(s);
       });
+
+      pollRef.current = setInterval(async () => {
+        try {
+          const d = await api(`/api/sessions/${session.id}/count`);
+          setAttendanceCount(d.count);
+          const s = await api(`/api/sessions/${session.id}/students`);
+          setStudents(s);
+        } catch {}
+      }, 5000);
+
       return () => {
         socket.disconnect();
         socketRef.current = null;
+        if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
       };
     }
   }, [session?.id, session?.status]);
@@ -108,11 +123,13 @@ export default function Page() {
       });
       setQrDataUrl(d.qrDataUrl);
       setQrExpiry(Date.now() + 5 * 60 * 1000);
+      setSession({ ...session, status: 'QR_ACTIVE' });
       setLoading(false);
     }, async () => {
       const d = await api(`/api/sessions/${session.id}/qr`, { method: 'POST' });
       setQrDataUrl(d.qrDataUrl);
       setQrExpiry(Date.now() + 5 * 60 * 1000);
+      setSession({ ...session, status: 'QR_ACTIVE' });
       setLoading(false);
     });
   }

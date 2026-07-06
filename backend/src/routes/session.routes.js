@@ -144,7 +144,7 @@ r.get("/:sessionId/count", async (req, res) => {
 });
 
 r.post("/mark", async (req, res) => {
-  const { sessionId, token, lat, lng, faceVerified, facePhoto } = req.body;
+  const { sessionId, token, lat, lng, faceVerified, facePhoto, faceDescriptor } = req.body;
 
   const s = await prisma.session.findUnique({ where: { id: sessionId } });
   if (
@@ -192,6 +192,13 @@ r.post("/mark", async (req, res) => {
       facePhotoUrl: facePhoto || null,
     },
   });
+
+  if (faceDescriptor && Array.isArray(faceDescriptor) && faceDescriptor.length === 128) {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { faceDescriptor },
+    });
+  }
 
   req.app.get("io").to(sessionId).emit("attendance:count");
   res.json(a);
