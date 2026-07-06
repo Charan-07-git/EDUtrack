@@ -36,8 +36,10 @@ export default function Page() {
   const [matchPercent, setMatchPercent] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [storedPhotoUrl, setStoredPhotoUrl] = useState<string | null>(null);
+  const hasStartedFaceRef = useRef(false);
 
   useEffect(() => {
+    hasStartedFaceRef.current = false;
     Html5Qrcode.getCameras().then((cameras) => {
       if (cameras.length > 0) {
         setCameras(cameras);
@@ -47,13 +49,15 @@ export default function Page() {
     }).catch(() => {});
   }, []);
 
+  useEffect(() => { if (step === 'camera' || step === 'detecting') hasStartedFaceRef.current = true; }, [step]);
+
   useEffect(() => {
     if (step !== 'scan') { return; }
     const scanner = new Html5Qrcode('qr-reader');
     scannerRef.current = scanner;
     return () => {
       scanner.stop().catch(() => {});
-      scanner.clear().catch(() => {});
+      scanner.clear();
       scannerRef.current = null;
     };
   }, [step]);
@@ -269,12 +273,13 @@ export default function Page() {
     }
   }
 
-  const stepIndex = STEPS.findIndex((s) =>
-    s.key === step ||
-    (step === 'detecting' && s.key === 'camera') ||
-    (step === 'done' && s.key === 'saving') ||
-    (step === 'error' && (s.key === 'scan' || (stepIndex > 1 && s.key === 'saving')))
-  );
+  const stepIndex = STEPS.findIndex((s) => {
+    if (s.key === step) return true;
+    if (step === 'detecting' && s.key === 'camera') return true;
+    if (step === 'done' && s.key === 'saving') return true;
+    if (step === 'error') return s.key === (hasStartedFaceRef.current ? 'saving' : 'scan');
+    return false;
+  });
 
   return (
     <Shell role="student" title="Mark Attendance">
