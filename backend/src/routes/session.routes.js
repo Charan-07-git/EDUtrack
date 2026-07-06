@@ -190,7 +190,7 @@ r.post("/mark", async (req, res) => {
   if (faceDescriptor && Array.isArray(faceDescriptor) && faceDescriptor.length === 128) {
     const stored = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { faceDescriptor: true },
+      select: { faceDescriptor: true, photoUrl: true },
     });
     let finalDescriptor = faceDescriptor;
     if (stored?.faceDescriptor && Array.isArray(stored.faceDescriptor) && stored.faceDescriptor.length === 128) {
@@ -198,7 +198,15 @@ r.post("/mark", async (req, res) => {
     }
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { faceDescriptor: finalDescriptor },
+      data: {
+        faceDescriptor: finalDescriptor,
+        ...(facePhoto && !stored?.photoUrl ? { photoUrl: facePhoto } : {}),
+      },
+    });
+  } else if (facePhoto) {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { photoUrl: facePhoto },
     });
   }
 

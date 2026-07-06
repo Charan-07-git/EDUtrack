@@ -60,7 +60,7 @@ export default function Page() {
         (pos) => {
           setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           setStep('camera');
-          setMsg('Opening front camera for face verification...');
+          setMsg('Wait to verify and mark attendance');
         },
         (err) => {
           setStep('error');
@@ -162,7 +162,7 @@ export default function Page() {
 
         if (!cancelled) {
           setStep('detecting');
-          setMsg(storedDescriptorRef.current ? 'Detecting face for verification...' : 'First-time registration! Look directly at the camera with good lighting');
+          setMsg('Wait to verify and mark attendance');
           detectFace();
         }
       } catch (e: any) {
@@ -409,12 +409,8 @@ export default function Page() {
         {/* Camera / Detecting Face */}
         {(step === 'camera' || step === 'detecting') && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs font-medium text-green-400">Camera Active</span>
-              </div>
-              <span className="text-xs text-slate-400">{step === 'detecting' ? 'Detecting...' : 'Ready'}</span>
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 text-center">
+              <span className="text-xs font-medium text-slate-300">Wait to verify and mark attendance</span>
             </div>
             <div className="relative bg-black">
               <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
