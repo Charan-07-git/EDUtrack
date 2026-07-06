@@ -34,11 +34,27 @@ r.put("/me", async (req, res) => {
   if (semester !== undefined) data.semester = Number(semester);
   if (year !== undefined) data.year = Number(year);
   if (selectedSubject !== undefined) data.selectedSubject = selectedSubject;
-  if (facultyCode !== undefined) data.facultyCode = facultyCode;
+  if (facultyCode !== undefined) {
+    data.facultyCode = facultyCode;
+    try {
+      const td = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
+      for (const semData of Object.values(td.default.semesters)) {
+        for (const slots of Object.values(semData.timetable)) {
+          for (const slot of slots) {
+            if (slot.facultyCode === facultyCode) {
+              const prefix = slot.faculty.match(/^(Dr\.|Prof\.)\s/)?.[1] || "";
+              if (prefix) data.designation = prefix;
+              break;
+            }
+          }
+        }
+      }
+    } catch {}
+  }
   const user = await prisma.user.update({
     where: { id: req.user.id },
     data,
-    select: { id: true, name: true, email: true, role: true, department: true, semester: true, year: true, selectedSubject: true, photoUrl: true },
+    select: { id: true, name: true, email: true, role: true, department: true, semester: true, year: true, selectedSubject: true, photoUrl: true, designation: true, facultyCode: true },
   });
   res.json(user);
 });

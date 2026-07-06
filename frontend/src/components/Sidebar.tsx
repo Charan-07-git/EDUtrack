@@ -163,31 +163,35 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
             <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
             <div className="min-w-0">
               <h3 className="font-semibold text-sm text-white truncate">{user?.name || "Welcome"}</h3>
-              {role === "teacher" ? (
-                teacherSemesters.length > 0 ? (
-                  <div className="relative mt-1">
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {role === "teacher" && user?.designation && (
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 rounded-md px-1.5 py-0.5">{user.designation}</span>
+                )}
+                {role === "teacher" && user?.facultyCode && (
+                  <span className="text-[10px] text-blue-300/50">[{user.facultyCode}]</span>
+                )}
+                {role === "teacher" && teacherSemesters.length > 0 ? (
+                  <div className="relative flex-1">
                     <select
                       value={teacherSem ?? ''}
                       onChange={(e) => handleSidebarSemesterChange(Number(e.target.value))}
-                      className="appearance-none bg-white/10 text-xs text-blue-200 rounded-lg px-2 py-1 pr-6 border border-white/10 w-full cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      className="appearance-none bg-white/10 text-[10px] text-blue-200 rounded-lg px-1.5 py-0.5 pr-5 border border-white/10 w-full cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-400"
                     >
                       {teacherSemesters.map((sem) => (
-                        <option key={sem} value={sem} className="text-slate-900">Semester {sem}</option>
+                        <option key={sem} value={sem} className="text-slate-900">Sem {sem}</option>
                       ))}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5">
-                      <svg className="w-3 h-3 text-blue-300/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
+                      <svg className="w-2.5 h-2.5 text-blue-300/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
-                    {savingSem && <span className="text-[10px] text-blue-300/50 ml-1">saving...</span>}
                   </div>
-                ) : (
-                  <p className="text-xs text-blue-300/70 truncate">{user?.designation || "Teacher"}</p>
-                )
-              ) : (
-                <p className="text-xs text-blue-300/70 truncate">{user?.department + " • Sem " + user?.semester}</p>
-              )}
+                ) : role !== "teacher" ? (
+                  <p className="text-[10px] text-blue-300/70 truncate">{user?.department + " • Sem " + user?.semester}</p>
+                ) : null}
+                {savingSem && <span className="text-[10px] text-blue-300/50">...</span>}
+              </div>
             </div>
           </div>
         </div>

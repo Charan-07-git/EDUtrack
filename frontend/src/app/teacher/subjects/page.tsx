@@ -162,7 +162,10 @@ export default function Page() {
                         className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 last:border-0"
                       >
                         <span className="font-bold text-blue-600 dark:text-blue-400 w-12">{f.code}</span>
-                        <span className="text-slate-600 dark:text-slate-400 truncate">{f.name}</span>
+                        <span className="text-slate-600 dark:text-slate-400 truncate">
+                          {f.prefix && <span className="text-amber-500 font-medium">{f.prefix} </span>}
+                          {f.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s/, '')}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -185,6 +188,17 @@ export default function Page() {
                 </button>
               )}
             </div>
+            {facultyCode && (() => {
+              const m = facultyCodes.find(f => f.code === facultyCode);
+              if (!m) return null;
+              return (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  {m.prefix && <span className="text-amber-500 font-medium">{m.prefix} </span>}
+                  {m.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s/, '')}
+                  {m.prefix === 'Dr.' && <span className="text-green-500 ml-1">✓ Doctorate</span>}
+                </p>
+              );
+            })()}
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
               Faculty codes are listed in the timetable (e.g., GUR = Dr. G. Upendra Reddy). Auto-populate will select all subjects assigned to this code.
             </p>

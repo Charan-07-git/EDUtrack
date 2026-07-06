@@ -105,6 +105,11 @@ r.get("/by-faculty", async (req, res) => {
   }
 });
 
+function extractPrefix(name) {
+  const match = name.match(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s/);
+  return match ? match[1] : "";
+}
+
 r.get("/faculty-codes", async (_req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
@@ -114,12 +119,20 @@ r.get("/faculty-codes", async (_req, res) => {
       for (const slots of Object.values(semData.timetable)) {
         for (const slot of slots) {
           if (slot.facultyCode && !codes[slot.facultyCode]) {
-            codes[slot.facultyCode] = slot.faculty;
+            codes[slot.facultyCode] = { name: slot.faculty, prefix: extractPrefix(slot.faculty) };
+          }
+        }
+        if (slot.labs) {
+          for (const lab of slot.labs) {
+            if (lab.facultyCode && !codes[lab.facultyCode]) {
+              codes[lab.facultyCode] = { name: lab.faculty, prefix: extractPrefix(lab.faculty) };
+            }
           }
         }
       }
     }
-    const result = Object.entries(codes).map(([code, name]) => ({ code, name }));
+    const result = Object.entries(codes).map(([code, info]) => ({ code, name: info.name, prefix: info.prefix }));
+    result.sort((a, b) => a.code.localeCompare(b.code));
     res.json(result);
   } catch {
     res.status(404).json({ message: "Timetable data not loaded" });
