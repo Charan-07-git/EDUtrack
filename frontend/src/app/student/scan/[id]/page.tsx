@@ -155,6 +155,13 @@ export default function Page() {
         }
 
         const user = await api('/api/me');
+        if (!user.faceRegistered) {
+          if (!cancelled) {
+            setStep('error');
+            setMsg('Face not registered. Please go to Settings and register your face first.');
+          }
+          return;
+        }
         if (user.faceDescriptor && Array.isArray(user.faceDescriptor) && user.faceDescriptor.length === 128) {
           storedDescriptorRef.current = user.faceDescriptor;
           if (user.photoUrl) setStoredPhotoUrl(user.photoUrl);
@@ -240,9 +247,8 @@ export default function Page() {
           }, 2000);
         }
       } else {
-        setMatchPercent(null);
-        setStep('confirm');
-        setMsg('Is this a clear photo of your face?');
+        setStep('error');
+        setMsg('Face recognition unavailable. Please try again later.');
       }
     } catch {
       if (!cancelledRef.current) detectTimerRef.current = setTimeout(detectFace, 1000);
@@ -443,12 +449,10 @@ export default function Page() {
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-white">
-                {matchPercent !== null ? `Face Verified (${matchPercent}% match)` : 'Face Registration - Clear Selfie Required'}
+                Face Verified ({matchPercent}% match)
               </h3>
               <p className="text-emerald-200 text-xs mt-1">
-                {matchPercent !== null
-                  ? 'Your face matches the stored record'
-                  : 'This photo will be used to create your face profile. Future attendance will verify against it.'}
+                Your face matches the stored record
               </p>
             </div>
             <div className="p-6 text-center">
@@ -458,9 +462,7 @@ export default function Page() {
                 </div>
               )}
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                {matchPercent !== null
-                  ? 'Tap Confirm to mark your attendance'
-                  : 'Ensure your face is clearly visible. This will be saved as your face reference for future attendance.'}
+                Tap Confirm to mark your attendance
               </p>
               {storedPhotoUrl && (
                 <div className="flex items-center justify-center gap-2 mb-4">
@@ -479,7 +481,7 @@ export default function Page() {
                   onClick={confirmAndSave}
                   className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/30 text-sm"
                 >
-                  {matchPercent !== null ? '✓ Confirm & Mark' : 'Save & Mark Attendance'}
+                  ✓ Confirm & Mark
                 </button>
               </div>
             </div>

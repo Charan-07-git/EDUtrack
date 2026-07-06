@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import FaceEnrollment from "@/components/FaceEnrollment";
 
 const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   1: [1, 2],
@@ -13,6 +14,7 @@ const YEAR_SEMESTER_MAP: Record<number, number[]> = {
 };
 
 const DEPARTMENTS = ["Computer Science", "Electronics", "Mechanical", "Civil", "Electrical"];
+const TOTAL_SAMPLES = 10;
 
 export default function StudentSetupPage() {
   const { user } = useAuth();
@@ -23,15 +25,8 @@ export default function StudentSetupPage() {
   const [step, setStep] = useState<"year-dept" | "semester" | "photo" | "done">("year-dept");
   const [loading, setLoading] = useState(false);
   const [prevSetup, setPrevSetup] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [photoCaptured, setPhotoCaptured] = useState(false);
-  const [photoData, setPhotoData] = useState<string | null>(null);
-  const [savingPhoto, setSavingPhoto] = useState(false);
-  const cameraReadyRef = useRef(false);
-  const [cameraError, setCameraError] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [savingFace, setSavingFace] = useState(false);
+  const [faceError, setFaceError] = useState(false);
 
   useEffect(() => {
     const prevY = localStorage.getItem("edutrack_year");
@@ -68,66 +63,30 @@ export default function StudentSetupPage() {
       localStorage.setItem("edutrack_department", department);
       localStorage.setItem("edutrack_semester", String(semester));
       setStep("photo");
-      setTimeout(() => openCamera(), 500);
     } catch {
       setLoading(false);
     }
   }
 
-  async function openCamera() {
+  async function saveEnrolledFace(descriptor: number[], photo: string) {
+    setSavingFace(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        cameraReadyRef.current = true;
-      }
-    } catch {
-      setMsg("Camera unavailable. You can skip this step, but face verification may not work.");
-      setCameraError(true);
-    }
-  }
-
-  function capturePhoto() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')?.drawImage(video, 0, 0);
-    const data = canvas.toDataURL('image/jpeg', 0.7);
-    setPhotoData(data);
-    setPhotoCaptured(true);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-  }
-
-  async function savePhoto() {
-    if (!photoData) return;
-    setSavingPhoto(true);
-    try {
-      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photoData }) });
+      await api('/api/me/face-descriptor', {
+        method: 'PUT',
+        body: JSON.stringify({ faceDescriptor: descriptor, photoUrl: photo }),
+      });
       setStep("done");
       setTimeout(() => router.push("/student/dashboard"), 800);
     } catch {
-      setSavingPhoto(false);
+      setSavingFace(false);
+      setFaceError(true);
     }
   }
 
-  function retakePhoto() {
-    setPhotoCaptured(false);
-    setPhotoData(null);
-    openCamera();
+  function handleSkip() {
+    setStep("done");
+    setTimeout(() => router.push("/student/dashboard"), 800);
   }
-
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-    };
-  }, []);
 
   if (step === "done") {
     return (
@@ -259,69 +218,38 @@ export default function StudentSetupPage() {
           </div>
         )}
 
-        {/* Photo capture */}
+        {/* Face Enrollment */}
         {step === "photo" && (
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 text-center">
-              {prevSetup ? "Update Your Face Photo" : "Capture Your Face Photo"}
+              {prevSetup ? "Update Your Face Profile" : "Register Your Face"}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4">
-              This photo is required for face verification during attendance
+              {savingFace
+                ? "Saving your facial profile..."
+                : faceError
+                ? "Failed to save. Please try again."
+                : `Capture ${TOTAL_SAMPLES} face samples from slightly different angles`}
             </p>
-            {cameraError ? (
-              <div className="text-center mb-4">
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-4">
-                  <p className="text-sm text-amber-700 dark:text-amber-300">{msg}</p>
-                </div>
+            {savingFace ? (
+              <div className="text-center py-8">
+                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
+              </div>
+            ) : faceError ? (
+              <div className="text-center">
+                <button onClick={() => setFaceError(false)} className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl text-sm">
+                  Try Again
+                </button>
+                <button onClick={handleSkip} className="ml-3 px-6 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm">
+                  Skip
+                </button>
               </div>
             ) : (
-              <div className="relative bg-black rounded-2xl overflow-hidden mb-4">
-                <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
-                <canvas ref={canvasRef} className="hidden" />
-                {!photoCaptured && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-48 h-48 rounded-full border-2 border-dashed border-white/30" />
-                  </div>
-                )}
-                {!photoCaptured && !photoData && (
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-full px-4 py-2">
-                    <span className="text-xs text-white">Look at the camera...</span>
-                  </div>
-                )}
-              </div>
+              <FaceEnrollment
+                onComplete={saveEnrolledFace}
+                onSkip={handleSkip}
+              />
             )}
-            {photoData && (
-              <div className="text-center mb-4">
-                <div className="inline-block rounded-2xl ring-4 ring-blue-200 dark:ring-blue-800 overflow-hidden shadow-xl">
-                  <img src={photoData} alt="Captured" className="w-48 h-48 object-cover" />
-                </div>
-              </div>
-            )}
-            <div className="flex gap-3 justify-center">
-              {photoData ? (
-                <>
-                  <button onClick={retakePhoto} className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all text-sm">
-                    Retake
-                  </button>
-                  <button onClick={savePhoto} disabled={savingPhoto} className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 text-sm disabled:opacity-50">
-                    {savingPhoto ? "Saving..." : "Save Photo →"}
-                  </button>
-                </>
-              ) : !photoCaptured ? (
-                cameraError ? (
-                  <button onClick={() => { setStep("done"); setTimeout(() => router.push("/student/dashboard"), 800); }} className="px-6 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm">
-                    Skip for now
-                  </button>
-                ) : (
-                  <button onClick={capturePhoto} className="w-16 h-16 rounded-full bg-white/80 hover:bg-white text-slate-900 shadow-lg text-sm font-bold transition-all flex items-center justify-center">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                    </svg>
-                  </button>
-                )
-              ) : null}
-            </div>
           </div>
         )}
       </div>

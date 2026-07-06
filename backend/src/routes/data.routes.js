@@ -22,6 +22,7 @@ r.get("/me", async (req, res) => {
       facultyCode: true,
       photoUrl: true,
       faceDescriptor: true,
+      faceRegistered: true,
     },
   });
   res.json(user);
@@ -84,16 +85,20 @@ r.put("/me/password", async (req, res) => {
 });
 
 r.put("/me/face-descriptor", async (req, res) => {
-  const { faceDescriptor } = req.body;
+  const { faceDescriptor, photoUrl } = req.body;
   if (!faceDescriptor || !Array.isArray(faceDescriptor)) {
     return res.status(400).json({ message: "faceDescriptor must be an array of 128 numbers" });
   }
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: { faceDescriptor: faceDescriptor },
-    select: { id: true, name: true, faceDescriptor: true },
+    data: {
+      faceDescriptor: faceDescriptor,
+      faceRegistered: true,
+      ...(photoUrl ? { photoUrl } : {}),
+    },
+    select: { id: true, name: true, faceDescriptor: true, faceRegistered: true, photoUrl: true },
   });
-  res.json({ success: true, stored: true });
+  res.json({ success: true, stored: true, user });
 });
 
 r.get("/teacher/dashboard", async (req, res) => {
