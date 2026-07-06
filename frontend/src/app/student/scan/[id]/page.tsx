@@ -37,9 +37,12 @@ export default function Page() {
   const [retryCount, setRetryCount] = useState(0);
   const [storedPhotoUrl, setStoredPhotoUrl] = useState<string | null>(null);
   const hasStartedFaceRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     hasStartedFaceRef.current = false;
+    cancelledRef.current = false;
     Html5Qrcode.getCameras().then((cameras) => {
       if (cameras.length > 0) {
         setCameras(cameras);
@@ -57,7 +60,7 @@ export default function Page() {
     scannerRef.current = scanner;
     return () => {
       scanner.stop().catch(() => {});
-      scanner.clear();
+      try { scanner.clear(); } catch {}
       scannerRef.current = null;
     };
   }, [step]);
@@ -150,14 +153,19 @@ export default function Page() {
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      cancelledRef.current = true;
+      if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
+    };
   }, [step]);
 
   async function detectFace() {
+    if (cancelledRef.current) return;
     const video = videoRef.current;
     const faceapi = faceapiRef.current;
     if (!video || !video.videoWidth || !faceapi) {
-      setTimeout(detectFace, 500);
+      detectTimerRef.current = setTimeout(detectFace, 500);
       return;
     }
 
@@ -166,11 +174,13 @@ export default function Page() {
         .withFaceLandmarks()
         .withFaceDescriptor();
 
+      if (cancelledRef.current) return;
+
       if (!detection) {
         setMsg('No face detected. Please look at the camera...');
         if (retryCount < 30) {
           setRetryCount(c => c + 1);
-          setTimeout(detectFace, 1000);
+          detectTimerRef.current = setTimeout(detectFace, 1000);
         } else {
           setStep('error');
           setMsg('Face detection timed out. Please try again.');
@@ -181,6 +191,8 @@ export default function Page() {
       liveDescriptorRef.current = detection.descriptor;
       setMsg('Face detected! Verifying...');
       await capturePhoto();
+
+      if (cancelledRef.current) return;
 
       if (storedDescriptorRef.current) {
         const stored = new Float32Array(storedDescriptorRef.current);
@@ -193,7 +205,7 @@ export default function Page() {
           setStep('confirm');
         } else {
           setMsg(`Face didn't match (${percent}%). Please try again...`);
-          setTimeout(() => {
+          detectTimerRef.current = setTimeout(() => {
             setRetryCount(0);
             detectFace();
           }, 2000);
@@ -204,7 +216,7 @@ export default function Page() {
         setMsg('Is this a clear photo of your face?');
       }
     } catch {
-      setTimeout(detectFace, 1000);
+      if (!cancelledRef.current) detectTimerRef.current = setTimeout(detectFace, 1000);
     }
   }
 
