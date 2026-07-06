@@ -1,6 +1,7 @@
 'use client';
 
 import Shell from '@/components/Shell';
+import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -268,18 +269,6 @@ export default function Page() {
     }
   }
 
-  function reset() {
-    setStep('scan');
-    setPayload(null);
-    setCoords(null);
-    photoRef.current = null;
-    liveDescriptorRef.current = null;
-    setMatchPercent(null);
-    setRetryCount(0);
-    setScanning(false);
-    setMsg('Choose a camera and tap Start Scanning');
-  }
-
   const stepIndex = STEPS.findIndex((s) =>
     s.key === step ||
     (step === 'detecting' && s.key === 'camera') ||
@@ -533,14 +522,7 @@ export default function Page() {
                 <img src={photoRef.current} alt="Captured" className="w-24 h-24 object-cover" />
               </div>
             )}
-            <div className="flex gap-3 justify-center">
-              <button onClick={reset} className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-                </svg>
-                Scan Another
-              </button>
-            </div>
+            <BackButton href="/student/today" label="Back to Today" />
           </div>
         )}
 
@@ -556,12 +538,7 @@ export default function Page() {
             </div>
             <h2 className="text-2xl font-extrabold text-red-600 dark:text-red-400 mb-2">Failed</h2>
             <p className="text-slate-500 dark:text-slate-400 mb-6">{msg}</p>
-            <button onClick={reset} className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-all shadow-md shadow-red-600/20">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-              </svg>
-              Try Again
-            </button>
+            <BackButton href="/student/today" label="Back to Today" />
           </div>
         )}
       </div>
