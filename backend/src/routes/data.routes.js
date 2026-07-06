@@ -112,15 +112,35 @@ r.get("/classes/today", async (req, res) => {
   const day = now.getDay();
 
   if (req.user.role === "TEACHER") {
-    const where = {
-      teacherId: req.user.id,
-    };
-    if (req.query.semester) where.semester = Number(req.query.semester);
-    const classes = await prisma.class.findMany({
-      where,
+    const semFilter = req.query.semester ? Number(req.query.semester) : null;
+    let classes = await prisma.class.findMany({
+      where: { teacherId: req.user.id, ...(semFilter ? { semester: semFilter } : {}) },
       include: { timetable: true },
     });
-    res.json(classes);
+    if (classes.length === 0) {
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+      if (user?.selectedSubject) {
+        try {
+          const subjects = JSON.parse(user.selectedSubject);
+          const filtered = semFilter ? subjects.filter((s) => s.semester === semFilter) : subjects;
+          for (const sub of filtered) {
+            const created = await prisma.class.create({
+              data: {
+                subject: sub.name,
+                code: sub.code,
+                department: sub.department || "Computer Science",
+                semester: sub.semester,
+                year: Math.ceil(sub.semester / 2),
+                teacherId: req.user.id,
+              },
+            });
+            classes.push({ ...created, timetable: [] });
+          }
+        } catch {}
+      }
+    }
+    const todayClasses = classes.filter((c) => c.timetable.length === 0 || c.timetable.some((t) => t.dayOfWeek === day));
+    res.json(todayClasses);
   } else {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
