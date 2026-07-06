@@ -29,6 +29,7 @@ export default function StudentSetupPage() {
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const prevY = localStorage.getItem("edutrack_year");
@@ -56,6 +57,7 @@ export default function StudentSetupPage() {
   async function finishSetup() {
     if (!year || !semester || !department) return;
     setLoading(true);
+    setError('');
     try {
       await api("/api/me", {
         method: "PUT",
@@ -68,6 +70,7 @@ export default function StudentSetupPage() {
       setTimeout(openCamera, 300);
     } catch {
       setLoading(false);
+      setError('Failed to save. Check your connection and try again.');
     }
   }
 
@@ -101,7 +104,7 @@ export default function StudentSetupPage() {
     if (!photoData) return;
     setSaving(true);
     try {
-      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photoData }) });
+      await api('/api/me', { method: 'PUT', body: JSON.stringify({ photoUrl: photoData, faceRegistered: true }) });
       setStep("done");
       setTimeout(() => router.push("/student/dashboard"), 800);
     } catch { setSaving(false); }
@@ -215,6 +218,11 @@ export default function StudentSetupPage() {
               {prevSetup ? "Which semester are you in now?" : `Choose your semester`}
               <span className="text-blue-600 block text-sm">Year {year} {department ? `| ${department}` : ""}</span>
             </h2>
+            {error && (
+              <div className="p-3 rounded-xl text-sm font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 mb-4">
+                {error}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               {(YEAR_SEMESTER_MAP[year!] || []).map((s) => (
                 <button
