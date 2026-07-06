@@ -4,7 +4,7 @@ import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 type Step = 'scan' | 'locating' | 'camera' | 'detecting' | 'confirm' | 'saving' | 'done' | 'error';
 
@@ -18,7 +18,7 @@ const STEPS = [
 
 export default function Page() {
   const [step, setStep] = useState<Step>('scan');
-  const [msg, setMsg] = useState('Choose a camera and tap Start Scanning');
+  const [msg, setMsg] = useState('Point camera at the QR code');
   const [payload, setPayload] = useState<{ sessionId: string; token: string } | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -28,10 +28,7 @@ export default function Page() {
   const modelsLoaded = useRef(false);
   const faceapiRef = useRef<any>(null);
   const faceRecogReady = useRef(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
-  const [selectedCamera, setSelectedCamera] = useState<string>('');
-  const [scanning, setScanning] = useState(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const storedDescriptorRef = useRef<number[] | null>(null);
   const liveDescriptorRef = useRef<any>(null);
   const [matchPercent, setMatchPercent] = useState<number | null>(null);
@@ -44,39 +41,20 @@ export default function Page() {
   useEffect(() => {
     hasStartedFaceRef.current = false;
     cancelledRef.current = false;
-    Html5Qrcode.getCameras().then((cameras) => {
-      if (cameras.length > 0) {
-        setCameras(cameras);
-        const back = cameras.find((c) => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment'));
-        setSelectedCamera(back ? back.id : cameras[0].id);
-      }
-    }).catch(() => {});
   }, []);
 
-  useEffect(() => { if (step === 'camera' || step === 'detecting') hasStartedFaceRef.current = true; }, [step]);
-
   useEffect(() => {
-    if (step !== 'scan') { return; }
-    const scanner = new Html5Qrcode('qr-reader');
-    scannerRef.current = scanner;
-    return () => {
-      scanner.stop().catch(() => {});
-      try { scanner.clear(); } catch {}
-      scannerRef.current = null;
-    };
+    if (step === 'camera' || step === 'detecting') hasStartedFaceRef.current = true;
   }, [step]);
 
-  function startScanning() {
-    if (!selectedCamera || !scannerRef.current) return;
-    setScanning(true);
-    setMsg('Scanning... Point camera at the QR code');
-    scannerRef.current.start(
-      selectedCamera,
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      async (decoded) => {
+  useEffect(() => {
+    if (step !== 'scan') return;
+    const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+    scannerRef.current = scanner;
+    scanner.render(
+      (decoded) => {
+        scanner.clear().catch(() => {});
         try {
-          await scannerRef.current?.stop();
-          setScanning(false);
           const p = JSON.parse(decoded);
           if (!p.sessionId || !p.token) throw new Error('Invalid QR code');
           setPayload(p);
@@ -100,17 +78,12 @@ export default function Page() {
         }
       },
       () => {}
-    ).catch(() => {
-      setScanning(false);
-      setMsg('Failed to start camera. Try another camera.');
-    });
-  }
-
-  function stopScanning() {
-    scannerRef.current?.stop().catch(() => {});
-    setScanning(false);
-    setMsg('Choose a camera and tap Start Scanning');
-  }
+    );
+    return () => {
+      scanner.clear().catch(() => {});
+      scannerRef.current = null;
+    };
+  }, [step]);
 
   useEffect(() => {
     if (step !== 'camera') return;
@@ -315,7 +288,6 @@ export default function Page() {
   return (
     <Shell role="student" title="Mark Attendance">
       <div className="max-w-lg mx-auto">
-        {/* Progress bar */}
         {step !== 'done' && step !== 'error' && (
           <div className="flex items-center justify-center gap-1 mb-6">
             {STEPS.map((s, i) => {
@@ -356,64 +328,8 @@ export default function Page() {
               <h2 className="text-xl font-bold text-white">Scan QR Code</h2>
               <p className="text-blue-200 text-sm mt-1">Point your camera at the teacher&apos;s QR code</p>
             </div>
-            <div className="p-6 space-y-4">
-              {/* Camera Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Select Camera</label>
-                <select
-                  value={selectedCamera}
-                  onChange={(e) => { setSelectedCamera(e.target.value); if (scanning) { stopScanning(); } }}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                >
-                  {cameras.map((cam) => (
-                    <option key={cam.id} value={cam.id}>{cam.label || `Camera ${cam.id.slice(0, 8)}`}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* QR Reader Area */}
-              <div id="qr-reader" className={`rounded-xl overflow-hidden border-2 ${scanning ? 'border-blue-400 dark:border-blue-500' : 'border-dashed border-slate-300 dark:border-slate-600'} bg-slate-50 dark:bg-slate-900/50`}>
-                {!scanning && (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                    <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                    </svg>
-                    <p className="text-sm">Camera preview will appear here</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Scan Button */}
-              <button
-                onClick={scanning ? stopScanning : startScanning}
-                className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
-                  scanning
-                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-blue-500/30'
-                }`}
-              >
-                {scanning ? (
-                  <>
-                    <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    Stop Scanning
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                    </svg>
-                    Start Scanning
-                  </>
-                )}
-              </button>
-
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Make sure the QR code is well-lit and centered
-              </div>
+            <div className="p-4">
+              <div id="qr-reader" className="rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50" />
             </div>
           </div>
         )}
@@ -596,7 +512,30 @@ export default function Page() {
         }
         #qr-reader video { border-radius: 0.75rem !important; }
         #qr-reader [data-video-container] { display: flex !important; justify-content: center !important; }
+        #qr-reader__dashboard_section_csr { display: none !important; }
+        #qr-reader__dashboard_section_sw_link { display: none !important; }
+        #qr-reader__status_span { display: none !important; }
         #qr-reader img { display: none !important; }
+        #qr-reader__scan_region { flex: 1 !important; }
+        #qr-reader__dashboard_section { padding: 0 !important; }
+        #qr-reader__dashboard_section_camera select {
+          width: 100% !important;
+          padding: 0.5rem 1rem !important;
+          border-radius: 0.75rem !important;
+          font-size: 0.875rem !important;
+          font-weight: 500 !important;
+          border: 1px solid #e2e8f0 !important;
+          background: #f8fafc !important;
+          color: #334155 !important;
+        }
+        .dark #qr-reader__dashboard_section_camera select {
+          background: #334155 !important;
+          border-color: #475569 !important;
+          color: #e2e8f0 !important;
+        }
+        #qr-reader__dashboard_section_camera button {
+          display: none !important;
+        }
       `}</style>
     </Shell>
   );
