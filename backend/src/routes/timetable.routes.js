@@ -19,13 +19,21 @@ r.get("/by-department", async (req, res) => {
 });
 
 r.get("/departments", async (req, res) => {
-  const classes = await prisma.class.findMany({
+  const dbClasses = await prisma.class.findMany({
     where: { teacherId: req.user.id },
     select: { department: true, semester: true },
     distinct: ["department", "semester"],
     orderBy: [{ department: "asc" }, { semester: "asc" }],
   });
-  res.json(classes);
+  if (dbClasses.length > 0) return res.json(dbClasses);
+  try {
+    const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
+    const semesters = Object.keys(data.default.semesters).map(Number).sort((a, b) => a - b);
+    const result = semesters.map((s) => ({ department: data.default.department || "Computer Science", semester: s }));
+    res.json(result);
+  } catch {
+    res.json([]);
+  }
 });
 
 r.post("/bulk", async (req, res) => {
@@ -79,7 +87,7 @@ r.get("/by-faculty", async (req, res) => {
       const sem = Number(semStr);
       for (const [day, slots] of Object.entries(semData.timetable)) {
         for (const slot of slots) {
-          if (slot.faculty === code || (slot.labs && slot.labs.some((l) => l.faculty === code))) {
+          if (slot.faculty === code || slot.facultyCode === code || (slot.labs && slot.labs.some((l) => l.faculty === code))) {
             const subjCode = slot.code || (slot.labs && slot.labs.find((l) => l.faculty === code)?.code);
             if (subjCode && !seen.has(`${sem}-${subjCode}`)) {
               seen.add(`${sem}-${subjCode}`);
