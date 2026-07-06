@@ -27,6 +27,7 @@ export default function Page() {
   const photoRef = useRef<string | null>(null);
   const modelsLoaded = useRef(false);
   const faceapiRef = useRef<any>(null);
+  const faceRecogReady = useRef(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
@@ -116,6 +117,7 @@ export default function Page() {
     let cancelled = false;
     (async () => {
       try {
+        await new Promise(r => setTimeout(r, 300));
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
@@ -127,11 +129,18 @@ export default function Page() {
           setMsg('Loading face detection model...');
           const faceapi = await import('face-api.js');
           faceapiRef.current = faceapi;
-          await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-          ]);
+          setMsg('Loading detection model...');
+          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+          setMsg('Loading recognition model...');
+          try {
+            await Promise.all([
+              faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+              faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+            ]);
+            faceRecogReady.current = true;
+          } catch {
+            faceRecogReady.current = false;
+          }
           modelsLoaded.current = true;
         }
 
@@ -146,10 +155,10 @@ export default function Page() {
           setMsg(storedDescriptorRef.current ? 'Detecting face for verification...' : 'First time! Take a clear selfie...');
           detectFace();
         }
-      } catch {
+      } catch (e: any) {
         if (!cancelled) {
           setStep('error');
-          setMsg('Camera permission denied or unavailable');
+          setMsg(e?.message || 'Camera permission denied or unavailable');
         }
       }
     })();
@@ -170,9 +179,19 @@ export default function Page() {
     }
 
     try {
-      const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+      let detection;
+      if (faceRecogReady.current) {
+        detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+      } else {
+        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }));
+        if (det) {
+          detection = { ...det, descriptor: null, landmarks: null };
+        } else {
+          detection = null;
+        }
+      }
 
       if (cancelledRef.current) return;
 
@@ -194,7 +213,7 @@ export default function Page() {
 
       if (cancelledRef.current) return;
 
-      if (storedDescriptorRef.current) {
+      if (faceRecogReady.current && storedDescriptorRef.current && detection.descriptor) {
         const stored = new Float32Array(storedDescriptorRef.current);
         const distance = faceapi.euclideanDistance(detection.descriptor, stored);
         const percent = Math.round(Math.max(0, Math.min(100, (1 - distance / 0.8) * 100)));
