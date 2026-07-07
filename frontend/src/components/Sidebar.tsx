@@ -123,10 +123,12 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
                   {user?.facultyCode && (
                     <p className="text-sm font-bold text-blue-300 leading-tight">{user.facultyCode}</p>
                   )}
-                  {user?.designation && (
-                    <p className="text-xs font-semibold text-amber-400/90 mt-0.5">{user.designation}</p>
-                  )}
-                  <p className="text-sm text-white/70 mt-0.5 truncate">{user?.name || "Welcome"}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {user?.designation && (
+                      <span className="text-xs font-semibold text-amber-400/90">{user.designation}</span>
+                    )}
+                    <span className="text-sm text-white/70 truncate">{user?.name || "Welcome"}</span>
+                  </div>
                 </>
               ) : (
                 <>
