@@ -13,7 +13,7 @@ export default function Page() {
     api('/api/low-attendance').then((d) => {
       setRows(d);
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, []);
 
   const r = rows.filter((x) => sem === 'all' || String(x.semester) === sem);
@@ -37,10 +37,13 @@ export default function Page() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.5s ease-out 0.2s both' }}>
           <select
             className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white mb-6"
+            value={sem}
             onChange={(e) => setSem(e.target.value)}
           >
             <option value="all">All Semesters</option>
-            <option value="5">Semester 5</option>
+            {Array.from(new Set(rows.map((x) => x.semester).filter(Boolean))).sort().map((s) => (
+              <option key={s} value={String(s)}>Semester {s}</option>
+            ))}
           </select>
 
           {!loaded ? (
@@ -57,7 +60,7 @@ export default function Page() {
           <div className="space-y-3">
             {r.map((x, i) => (
               <div
-                key={x.name}
+                key={x.id || x.name}
                 className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-200"
                 style={{ animation: `slideIn 0.4s ease-out ${i * 100}ms both` }}
               >

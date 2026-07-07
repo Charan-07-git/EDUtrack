@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
@@ -11,13 +11,14 @@ export default function LoginPage() {
     email: "",
     password: "",
     name: "",
-    department: "Computer Science",
+    department: "CSE",
     semester: 5,
     rollNumber: "",
   });
   const [photo, setPhoto] = useState("");
   const [remember, setRemember] = useState(false);
   const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -33,8 +34,20 @@ export default function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    setRemember(localStorage.getItem('edutrack_remember') === 'true');
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('edutrack_remember_id');
+    if (saved) {
+      if (role === 'STUDENT') setForm(f => ({ ...f, rollNumber: saved }));
+      else setForm(f => ({ ...f, email: saved }));
+    }
+  }, [role]);
+
   function clearForm() {
-    setForm({ email: "", password: "", name: "", department: "Computer Science", semester: 5, rollNumber: "" });
+    setForm({ email: "", password: "", name: "", department: "CSE", semester: 5, rollNumber: "" });
     setPhoto("");
     setErr("");
     setShowPassword(false);
@@ -48,10 +61,15 @@ export default function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (mode === "login") {
         const id = role === "STUDENT" ? form.rollNumber : form.email;
-        if (!id) { setErr("Please enter your " + (role === "STUDENT" ? "roll number" : "email")); return; }
+        if (!id) { setErr("Please enter your " + (role === "STUDENT" ? "roll number" : "email")); setSubmitting(false); return; }
+        localStorage.setItem('edutrack_remember', String(remember));
+        if (remember) localStorage.setItem('edutrack_remember_id', id);
+        else localStorage.removeItem('edutrack_remember_id');
         await login(id, form.password, role);
       } else {
         const { department, semester, ...rest } = form;
@@ -60,6 +78,7 @@ export default function LoginPage() {
     } catch (x: any) {
       setErr(x.message);
     }
+    setSubmitting(false);
   }
 
   return (
@@ -231,18 +250,26 @@ export default function LoginPage() {
             {/* SUBMIT BUTTON */}
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
+              disabled={submitting}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {mode === "login" ? "Sign in" : "Create Account"}
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {mode === "login" ? "Signing in..." : "Creating..."}
+                </span>
+              ) : (
+                mode === "login" ? "Sign in" : "Create Account"
+              )}
             </button>
           </form>
 
           {/* LINKS */}
           <div className="text-center mt-6 text-sm space-y-2">
             {mode === "login" && (
-              <p className="text-blue-500 cursor-pointer hover:text-blue-700 hover:underline transition-all">
+              <button type="button" onClick={() => setErr('Password reset is not available yet. Please contact your administrator.')} className="text-blue-500 cursor-pointer hover:text-blue-700 hover:underline transition-all bg-transparent border-none text-sm">
                 Forgot password?
-              </p>
+              </button>
             )}
 
             <p className="text-gray-600 dark:text-slate-400">

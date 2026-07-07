@@ -10,22 +10,32 @@ export default function Page() {
   const { user } = useAuth();
   const [classes, setClasses] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any>({});
+  const [attendedDates, setAttendedDates] = useState<number[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [targetPercent, setTargetPercent] = useState(85);
 
   useEffect(() => {
     api('/api/student/dashboard').then((data) => {
       setClasses(data.classes || []);
       const att: Record<string, any> = {};
+      const dates: number[] = [];
       data.classes.forEach((c: any) => {
         const total = c.sessions.length;
         const attended = c.sessions.filter((s: any) =>
           s.attendances.some((a: any) => a.studentId === user?.id)
         ).length;
         att[c.id] = { total, attended, percent: total ? Math.round((attended / total) * 100) : 0 };
+        c.sessions.forEach((s: any) => {
+          if (s.attendances.some((a: any) => a.studentId === user?.id) && s.date) {
+            const d = new Date(s.date);
+            if (d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear()) {
+              dates.push(d.getDate());
+            }
+          }
+        });
       });
       setAttendance(att);
-    });
+      setAttendedDates(dates);
+    }).catch(() => {});
   }, [user?.id]);
 
   const summary = (Object.values(attendance) as { total: number; attended: number }[]).reduce(
@@ -34,13 +44,7 @@ export default function Page() {
   );
   const overallPercent = summary.total ? Math.round((summary.attended / summary.total) * 100) : 0;
 
-  const whatIf = () => {
-    const target = targetPercent / 100;
-    const needed = Math.ceil((target * summary.total - summary.attended) / (1 - target));
-    return needed > 0 ? needed : 0;
-  };
-
-  const attendanceDates = Object.values(attendance).map((a: any) => a.attended).reduce((a, b) => a + b, 0);
+  const attendanceDateSet = new Set(attendedDates);
 
   const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay();
@@ -109,7 +113,7 @@ export default function Page() {
               {calendarCells.map((day, i) => {
                 if (!day) return <div key={i} />;
                 const isToday = day === today;
-                const hasAttendance = day <= attendanceDates;
+                const hasAttendance = attendanceDateSet.has(day);
                 return (
                   <div key={i} className={`h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
                     hasAttendance ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-300'
@@ -121,19 +125,6 @@ export default function Page() {
             </div>
           </div>
         )}
-
-        {/* What-if Calculator */}
-        <div className="card" style={{ animation: 'fadeUp 0.4s ease-out 0.1s' }}>
-          <h3 className="font-bold text-slate-900 dark:text-white mb-3">🎯 What-if Calculator</h3>
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="text-sm text-slate-600 dark:text-slate-400">Target %:</label>
-            <input type="range" min="75" max="100" value={targetPercent} onChange={(e) => setTargetPercent(Number(e.target.value))} className="w-48 accent-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{targetPercent}%</span>
-            <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">Need {whatIf()} more consecutive classes</p>
-            </div>
-          </div>
-        </div>
 
         {/* Individual Subject Attendance */}
         <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 shadow-lg" style={{ animation: 'fadeUp 0.4s ease-out 0.2s both' }}>

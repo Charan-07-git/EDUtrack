@@ -12,7 +12,7 @@ const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   4: [7, 8],
 };
 
-const DEPARTMENTS = ["Computer Science", "Electronics", "Mechanical", "Civil", "Electrical"];
+const DEPARTMENTS = ["CSE"];
 
 export default function StudentSetupPage() {
   const { user, refreshUser } = useAuth();

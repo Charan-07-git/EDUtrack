@@ -32,6 +32,7 @@ r.get("/archive", async (req, res) => {
   });
   res.json(sessions.map((s) => ({
     id: s.id,
+    classId: s.classId,
     subject: s.class.subject,
     code: s.class.code,
     attendanceCount: s.attendances.length,
@@ -52,21 +53,23 @@ r.get("/:sessionId/students", async (req, res) => {
       department: session.class.department,
       semester: session.class.semester,
     },
-    select: { id: true, name: true, department: true, semester: true },
+    select: { id: true, name: true, rollNumber: true, department: true, semester: true },
     orderBy: { name: "asc" },
   });
   const attendances = await prisma.attendance.findMany({
     where: { sessionId: req.params.sessionId },
-    select: { studentId: true, markedAt: true },
+    select: { studentId: true, markedAt: true, photo: true, studentName: true, rollNumber: true },
   });
-  const presentMap = new Map(attendances.map((a) => [a.studentId, a.markedAt]));
+  const attMap = new Map(attendances.map((a) => [a.studentId, a]));
   res.json(students.map((s) => ({
     id: s.id,
     name: s.name,
+    rollNumber: s.rollNumber,
     department: s.department,
     semester: s.semester,
-    isPresent: presentMap.has(s.id),
-    markedAt: presentMap.get(s.id) || null,
+    isPresent: attMap.has(s.id),
+    markedAt: attMap.get(s.id)?.markedAt || null,
+    photo: attMap.get(s.id)?.photo || null,
   })));
 });
 
@@ -148,9 +151,12 @@ r.get("/:sessionId/count", async (req, res) => {
 });
 
 r.post("/mark", async (req, res) => {
-  const { sessionId, token, lat, lng, faceVerified, facePhoto, faceDescriptor } = req.body;
+  const { sessionId, token, lat, lng, photo } = req.body;
 
-  const s = await prisma.session.findUnique({ where: { id: sessionId } });
+  const s = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { class: { select: { id: true, subject: true, code: true } } },
+  });
   if (
     !s ||
     s.status !== "QR_ACTIVE" ||
@@ -169,50 +175,37 @@ r.post("/mark", async (req, res) => {
     locationVerified = d <= 100;
   }
 
+  const student = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { name: true, rollNumber: true },
+  });
+
   const a = await prisma.attendance.upsert({
     where: { sessionId_studentId: { sessionId, studentId: req.user.id } },
     update: {
-      facePhotoUrl: facePhoto || undefined,
+      photo: photo || undefined,
       faceVerified: true,
-      locationVerified: true,
+      locationVerified,
+      studentName: student?.name || undefined,
+      rollNumber: student?.rollNumber || undefined,
+      subjectId: s.classId || undefined,
+      teacherId: s.teacherId || undefined,
     },
     create: {
       sessionId,
       studentId: req.user.id,
       faceVerified: true,
-      locationVerified: true,
-      facePhotoUrl: facePhoto || null,
+      locationVerified,
+      photo: photo || null,
+      studentName: student?.name || null,
+      rollNumber: student?.rollNumber || null,
+      subjectId: s.classId || null,
+      teacherId: s.teacherId || null,
     },
   });
 
-  try {
-    if (faceDescriptor && Array.isArray(faceDescriptor) && faceDescriptor.length === 128) {
-      const stored = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { faceDescriptor: true, photoUrl: true },
-      });
-      let finalDescriptor = faceDescriptor;
-      if (stored?.faceDescriptor && Array.isArray(stored.faceDescriptor) && stored.faceDescriptor.length === 128) {
-        finalDescriptor = faceDescriptor.map((v, i) => (v + stored.faceDescriptor[i]) / 2);
-      }
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: {
-          faceDescriptor: finalDescriptor,
-          ...(facePhoto && !stored?.photoUrl ? { photoUrl: facePhoto } : {}),
-        },
-      });
-    } else if (facePhoto) {
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: { photoUrl: facePhoto },
-      });
-    }
-  } catch (e) {
-    console.error("Face descriptor update error:", e);
-  }
-
-  req.app.get("io").to(sessionId).emit("attendance:count");
+  const count = await prisma.attendance.count({ where: { sessionId } });
+  req.app.get("io").to(sessionId).emit("attendance:count", { sessionId, count, attendanceId: a.id });
   res.json(a);
 });
 

@@ -3,56 +3,57 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, use } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-type Step = 'scan' | 'locating' | 'camera' | 'saving' | 'done' | 'error';
+type Step = 'scan' | 'camera' | 'captured' | 'validating' | 'confirm' | 'saving' | 'success' | 'error';
 
-const STEPS = [
-  { key: 'scan', label: 'Scan QR' },
-  { key: 'locating', label: 'Location' },
-  { key: 'camera', label: 'Photo' },
-  { key: 'saving', label: 'Save' },
-];
+const CAMPUS_LAT = Number(process.env.NEXT_PUBLIC_CAMPUS_LAT) || 17.411;
+const CAMPUS_LNG = Number(process.env.NEXT_PUBLIC_CAMPUS_LNG) || 78.529;
+const MAX_DISTANCE = 500;
 
-export default function Page() {
+function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [step, setStep] = useState<Step>('scan');
   const [msg, setMsg] = useState('Point camera at the QR code');
   const [payload, setPayload] = useState<{ sessionId: string; token: string } | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<number | null>(null);
+  const [validationError, setValidationError] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const photoRef = useRef<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    cancelledRef.current = false;
-  }, []);
+    if (id) {
+      api(`/api/sessions/${id}`).then((session: any) => {
+        if (session.expiresAt) {
+          setQrExpiresAt(new Date(session.expiresAt).getTime());
+        }
+      }).catch(() => {});
+    }
+  }, [id]);
 
   function onQrScanned(decoded: string) {
-    stopCamera();
+    stopScanner();
     try {
       const p = JSON.parse(decoded);
       if (!p.sessionId || !p.token) throw new Error('Invalid QR code');
       setPayload(p);
-      setStep('locating');
-      setMsg('QR scanned! Getting your location...');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          setStep('camera');
-          setMsg('Taking photo...');
-        },
-        () => {
-          setStep('error');
-          setMsg('Location permission denied. Please enable GPS and try again.');
-        },
-        { timeout: 10000 }
-      );
+      setMsg('QR scanned! Opening camera...');
+      setStep('camera');
     } catch (e: any) {
       setStep('error');
       setMsg(e.message || 'Invalid QR code');
@@ -65,12 +66,11 @@ export default function Page() {
       scannerRef.current = scanner;
     }
     return () => {
-      stopCamera();
-      scannerRef.current = null;
+      stopScanner();
     };
   }, [step]);
 
-  async function openCamera() {
+  async function openScanner() {
     const scanner = scannerRef.current;
     if (!scanner) return;
     setScanning(true);
@@ -93,17 +93,17 @@ export default function Page() {
     }
   }
 
-  async function stopCamera() {
+  function stopScanner() {
     setScanning(false);
-    const scanner = scannerRef.current;
-    if (scanner) {
-      try { await scanner.stop(); } catch {}
+    const sc = scannerRef.current;
+    if (sc) {
+      try { sc.stop(); } catch {}
     }
   }
 
   useEffect(() => {
     if (step !== 'scan') {
-      stopCamera();
+      stopScanner();
     }
   }, [step]);
 
@@ -112,7 +112,7 @@ export default function Page() {
     let cancelled = false;
     (async () => {
       try {
-        await new Promise(r => setTimeout(r, 300));
+        setMsg('Capturing photo...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
@@ -120,19 +120,6 @@ export default function Page() {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
-
-        setCountdown(4);
-        const interval = setInterval(() => {
-          setCountdown(prev => {
-            if (prev === null) return null;
-            if (prev <= 1) {
-              clearInterval(interval);
-              captureAndSave();
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
       } catch (e: any) {
         if (!cancelled) {
           setStep('error');
@@ -142,7 +129,6 @@ export default function Page() {
     })();
     return () => {
       cancelled = true;
-      cancelledRef.current = true;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
@@ -150,7 +136,7 @@ export default function Page() {
     };
   }, [step]);
 
-  function captureAndSave() {
+  function capturePhoto() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) {
@@ -172,19 +158,67 @@ export default function Page() {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
-    saveAttendance();
+    setStep('captured');
+    setMsg('Photo captured');
   }
 
-  async function saveAttendance() {
+  function retakePhoto() {
+    photoRef.current = null;
+    setStep('camera');
+    setMsg('Capturing photo...');
+  }
+
+  async function handleDone() {
+    setStep('validating');
+    setMsg('Validating location and timestamp...');
+    setValidationError('');
+
+    const qrExpiry = qrExpiresAt || Date.now() + 5 * 60 * 1000;
+    if (Date.now() > qrExpiry) {
+      setValidationError('Attendance session expired. Please scan a new QR code.');
+      setStep('error');
+      setMsg('Attendance session expired');
+      return;
+    }
+
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+      });
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      setCoords({ lat, lng });
+
+      const d = distanceMeters(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
+      if (d > MAX_DISTANCE) {
+        setValidationError(`Location mismatch. You are ${Math.round(d)}m from campus (max ${MAX_DISTANCE}m).`);
+        setStep('error');
+        setMsg('Location mismatch');
+        return;
+      }
+
+      setStep('confirm');
+      setMsg('Validation passed. Confirm to mark attendance.');
+    } catch (e: any) {
+      setValidationError('Location permission denied. Please enable GPS and try again.');
+      setStep('error');
+      setMsg('Location permission denied');
+    }
+  }
+
+  async function confirmAttendance() {
     setStep('saving');
     setMsg('Saving attendance...');
-    if (!payload) { setStep('error'); setMsg('Missing session data'); return; }
+    if (!payload) {
+      setStep('error');
+      setMsg('Missing session data');
+      return;
+    }
     try {
       const body: any = {
         sessionId: payload.sessionId,
         token: payload.token,
-        faceVerified: true,
-        facePhoto: photoRef.current,
+        photo: photoRef.current,
       };
       if (coords) {
         body.lat = coords.lat;
@@ -194,45 +228,43 @@ export default function Page() {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      setStep('done');
-      setMsg('Attendance marked successfully!');
+      setStep('success');
+      setMsg('Attendance Marked Successfully');
     } catch (e: any) {
       setStep('error');
       setMsg(e.message || 'Failed to mark attendance');
     }
   }
 
-  const stepIndex = STEPS.findIndex(s => {
-    if (s.key === step) return true;
-    if (step === 'done' && s.key === 'saving') return true;
-    if (step === 'error') return s.key === 'scan';
-    return false;
-  });
-
   return (
     <Shell role="student" title="Mark Attendance">
       <div className="max-w-lg mx-auto">
-        {step !== 'done' && step !== 'error' && (
+        {/* Step indicator */}
+        {step !== 'success' && step !== 'error' && (
           <div className="flex items-center justify-center gap-1 mb-6">
-            {STEPS.map((s, i) => {
-              const active = i <= stepIndex;
-              const current = i === stepIndex;
+            {['scan', 'camera', 'captured', 'confirm'].map((s, i) => {
+              const order = ['scan', 'camera', 'captured', 'validating', 'confirm', 'saving'];
+              const stepIdx = order.indexOf(step);
+              const currentStepIdx = order.indexOf(s);
+              const active = currentStepIdx <= stepIdx;
+              const isCurrent = currentStepIdx === stepIdx;
+              const labels: Record<string, string> = { scan: 'QR', camera: 'Photo', captured: 'Review', confirm: 'Done' };
               return (
-                <div key={s.key} className="flex items-center gap-1">
+                <div key={s} className="flex items-center gap-1">
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                    current
+                    isCurrent
                       ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-2 ring-blue-300 dark:ring-blue-600'
                       : active
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                   }`}>
                     <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                      active && !current ? 'bg-white/30' : current ? 'bg-blue-600 text-white' : 'bg-slate-300 dark:bg-slate-600'
-                    }`}>{active && !current ? '✓' : i + 1}</span>
-                    {s.label}
+                      active && !isCurrent ? 'bg-white/30' : isCurrent ? 'bg-blue-600 text-white' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}>{active && !isCurrent ? '✓' : currentStepIdx + 1}</span>
+                    {labels[s] || s}
                   </div>
-                  {i < STEPS.length - 1 && (
-                    <div className={`w-6 h-0.5 rounded ${active && i < stepIndex ? 'bg-blue-500' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                  {currentStepIdx < 3 && (
+                    <div className={`w-6 h-0.5 rounded ${active && currentStepIdx < stepIdx ? 'bg-blue-500' : 'bg-slate-200 dark:bg-slate-700'}`} />
                   )}
                 </div>
               );
@@ -257,14 +289,14 @@ export default function Page() {
               <div className="mt-4 flex justify-center gap-3">
                 {!scanning ? (
                   <button
-                    onClick={openCamera}
+                    onClick={openScanner}
                     className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 text-sm"
                   >
                     Open Camera
                   </button>
                 ) : (
                   <button
-                    onClick={stopCamera}
+                    onClick={stopScanner}
                     className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-500/30 text-sm"
                   >
                     Stop Camera
@@ -275,49 +307,96 @@ export default function Page() {
           </div>
         )}
 
-        {/* Locating */}
-        {step === 'locating' && (
+        {/* Camera - Capture photo */}
+        {step === 'camera' && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center justify-center gap-2">
+              <span className="text-xs font-medium text-slate-300">Take a live photo for attendance</span>
+            </div>
+            <div className="relative bg-black">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[400px] object-cover" />
+              <canvas ref={canvasRef} className="hidden" />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+                <button
+                  onClick={capturePhoto}
+                  className="w-16 h-16 rounded-full bg-white/80 hover:bg-white border-4 border-white shadow-xl flex items-center justify-center transition-all hover:scale-105"
+                >
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-slate-300" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Captured - Show photo + Done button */}
+        {step === 'captured' && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-center gap-2">
+              <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span className="text-sm font-medium text-white">Photo captured successfully</span>
+            </div>
+            <div className="p-6 text-center">
+              {photoRef.current && (
+                <div className="inline-block rounded-2xl ring-4 ring-emerald-200 dark:ring-emerald-800 overflow-hidden mb-4 shadow-xl">
+                  <img src={photoRef.current} alt="Captured" className="w-48 h-48 object-cover" />
+                </div>
+              )}
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Review your photo. Click Done to proceed with location validation.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={retakePhoto} className="px-6 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all text-sm">
+                  Retake
+                </button>
+                <button onClick={handleDone} className="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/30 text-sm">
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Validating */}
+        {step === 'validating' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="w-20 h-20 mx-auto mb-5 relative">
               <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
               <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <div className="animate-spin w-8 h-8 border-[3px] border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-lg font-bold text-slate-900 dark:text-white">{msg}</p>
-            <p className="text-sm text-slate-400 mt-2">Verifying your location for attendance radius</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-white">Validating...</p>
+            <p className="text-sm text-slate-400 mt-2">Checking your location and session timestamp</p>
           </div>
         )}
 
-        {/* Camera */}
-        {step === 'camera' && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center justify-center gap-2">
-              <span className="text-xs font-medium text-slate-300">Capturing photo for attendance</span>
-            </div>
-            <div className="relative bg-black">
-              <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
-              <canvas ref={canvasRef} className="hidden" />
-              {countdown !== null && countdown > 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                    <span className="text-6xl font-extrabold text-white drop-shadow-lg">{countdown}</span>
-                  </div>
-                </div>
-              )}
-              {countdown === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="animate-spin w-8 h-8 border-[3px] border-white border-t-transparent rounded-full" />
-                </div>
-              )}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-full px-4 py-2 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-xs text-white font-medium">Getting ready...</span>
+        {/* Confirm to Mark Attendance */}
+        {step === 'confirm' && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 text-center">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
+              <h2 className="text-xl font-bold text-white">Ready to Mark</h2>
+              <p className="text-emerald-100 text-sm mt-1">Location and timestamp verified successfully</p>
+            </div>
+            <div className="p-6 text-center">
+              {photoRef.current && (
+                <div className="inline-block rounded-2xl ring-4 ring-emerald-200 dark:ring-emerald-800 overflow-hidden mb-4 shadow-lg">
+                  <img src={photoRef.current} alt="Captured" className="w-28 h-28 object-cover" />
+                </div>
+              )}
+              {coords && (
+                <p className="text-xs text-slate-400 mb-4">
+                  Location: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+                </p>
+              )}
+              <button onClick={confirmAttendance} className="w-full px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/30 text-base">
+                Confirm to Mark Attendance
+              </button>
             </div>
           </div>
         )}
@@ -343,8 +422,8 @@ export default function Page() {
           </div>
         )}
 
-        {/* Done */}
-        {step === 'done' && (
+        {/* Success */}
+        {step === 'success' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center" style={{ animation: 'scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div className="w-24 h-24 mx-auto mb-5">
               <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -353,14 +432,14 @@ export default function Page() {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mb-2">Success!</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">{msg}</p>
+            <h2 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mb-2">Attendance Marked Successfully</h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">Your attendance has been recorded</p>
             {photoRef.current && (
               <div className="inline-block rounded-2xl ring-4 ring-emerald-200 dark:ring-emerald-800 overflow-hidden mb-6">
                 <img src={photoRef.current} alt="Captured" className="w-24 h-24 object-cover" />
               </div>
             )}
-            <BackButton href="/student/today" label="Back to Today" />
+            <BackButton href="/student/today" label="Back to Today's Classes" />
           </div>
         )}
 
@@ -375,8 +454,16 @@ export default function Page() {
               </div>
             </div>
             <h2 className="text-2xl font-extrabold text-red-600 dark:text-red-400 mb-2">Failed</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">{msg}</p>
-            <BackButton href="/student/today" label="Back to Today" />
+            <p className="text-slate-500 dark:text-slate-400 mb-2">{msg}</p>
+            {validationError && (
+              <p className="text-sm text-red-500 dark:text-red-400 mb-6 font-medium">{validationError}</p>
+            )}
+            <div className="flex gap-3 justify-center">
+              <BackButton href="/student/today" label="Back to Today's Classes" />
+              <button onClick={() => { setStep('scan'); setMsg('Point camera at the QR code'); setPayload(null); setCoords(null); setValidationError(''); photoRef.current = null; }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all text-sm">
+                Try Again
+              </button>
+            </div>
           </div>
         )}
       </div>

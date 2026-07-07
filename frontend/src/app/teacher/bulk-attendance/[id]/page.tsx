@@ -9,9 +9,10 @@ export default function Page() {
   const { id } = useParams();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
-    api(`/api/sessions/${id}/students`).then(setStudents);
+    api(`/api/sessions/${id}/students`).then((d) => { setStudents(d); setFetched(true); }).catch(() => setFetched(true));
   }, [id]);
 
   function toggleStudent(studentId: string) {
@@ -56,7 +57,18 @@ export default function Page() {
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {students.map((s) => (
+            {!fetched ? (
+              <div className="text-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+                <p className="mt-3 text-sm text-slate-400">Loading students...</p>
+              </div>
+            ) : students.length === 0 ? (
+              <div className="text-center py-8">
+                <span className="text-4xl block mb-3">👥</span>
+                <p className="text-slate-500 font-medium">No students found</p>
+                <p className="text-xs text-slate-400 mt-1">No students are enrolled in this class</p>
+              </div>
+            ) : students.map((s) => (
               <button
                 key={s.id}
                 onClick={() => toggleStudent(s.id)}

@@ -26,7 +26,7 @@ export default function Page() {
         });
       });
       setAttendanceDates(dates);
-    });
+    }).catch(() => {});
   }, [user?.id]);
 
   const year = currentDate.getFullYear();

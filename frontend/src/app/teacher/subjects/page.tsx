@@ -19,6 +19,13 @@ export default function Page() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectSem, setNewSubjectSem] = useState(1);
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editSem, setEditSem] = useState(1);
 
   useEffect(() => {
     api('/api/timetable/faculty-codes').then(setFacultyCodes).catch(() => {});
@@ -62,7 +69,7 @@ export default function Page() {
       setMySubjects(mine);
       if (me.facultyCode) setFacultyCode(me.facultyCode);
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, []);
 
   function isSelected(code: string, semester: number) {
@@ -115,6 +122,46 @@ export default function Page() {
       setTimeout(() => setSaved(false), 2000);
     } catch {}
     setSaving(false);
+  }
+
+  async function createSubject(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newSubjectName.trim()) return;
+    setCreating(true);
+    try {
+      const cls = await api('/api/teacher/subjects', {
+        method: 'POST',
+        body: JSON.stringify({ name: newSubjectName.trim(), semester: newSubjectSem }),
+      });
+      setMySubjects([...mySubjects, { semester: cls.semester, code: cls.code, name: cls.subject, department: cls.department }]);
+      setNewSubjectName('');
+      setNewSubjectSem(1);
+      setShowCreateForm(false);
+    } catch (err: any) {
+      alert(err.message || 'Failed to create subject');
+    }
+    setCreating(false);
+  }
+
+  function startEdit(cls: any) {
+    setEditingId(cls.id);
+    setEditName(cls.subject);
+    setEditSem(cls.semester);
+  }
+
+  async function saveEdit(code: string) {
+    try {
+      const cls = await api(`/api/teacher/subjects/${code}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: editName, semester: editSem }),
+      });
+      setMySubjects(mySubjects.map((s) =>
+        s.code === code ? { ...s, name: editName, semester: editSem } : s
+      ));
+      setEditingId(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update subject');
+    }
   }
 
   const semesters = Array.from(new Set(allSubjects.map((s) => s.semester))).sort((a, b) => a - b);
@@ -207,6 +254,51 @@ export default function Page() {
             </p>
           </div>
 
+          {/* Create Subject Card */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Create Custom Subject</h2>
+              <button
+                onClick={() => { setShowCreateForm(!showCreateForm); setNewSubjectName(''); setNewSubjectSem(1); }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${showCreateForm ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300' : 'bg-green-600 text-white hover:bg-green-700'}`}
+              >
+                {showCreateForm ? 'Cancel' : '+ New Subject'}
+              </button>
+            </div>
+            {showCreateForm && (
+              <form onSubmit={createSubject} className="flex flex-wrap items-end gap-3">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Subject Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Machine Learning"
+                    value={newSubjectName}
+                    onChange={(e) => setNewSubjectName(e.target.value)}
+                    className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Semester</label>
+                  <select
+                    value={newSubjectSem}
+                    onChange={(e) => setNewSubjectSem(Number(e.target.value))}
+                    className="px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500"
+                  >
+                    {[1,2,3,4,5,6,7,8].map((s) => <option key={s} value={s}>Semester {s}</option>)}
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  disabled={creating || !newSubjectName.trim()}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-md"
+                >
+                  {creating ? 'Creating...' : 'Create Subject'}
+                </button>
+              </form>
+            )}
+          </div>
+
           {/* Subject Selection Card */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
@@ -296,6 +388,57 @@ export default function Page() {
               })}
             </div>
           </div>
+
+          {/* My Subjects List with Edit */}
+          {mySubjects.length > 0 && (
+            <div className="card">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">My Subjects</h2>
+              <div className="space-y-2">
+                {mySubjects.map((subj) => {
+                  const isEditing = editingId === subj.code;
+                  return (
+                    <div key={subj.code} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
+                      {isEditing ? (
+                        <>
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="flex-1 px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                          />
+                          <select
+                            value={editSem}
+                            onChange={(e) => setEditSem(Number(e.target.value))}
+                            className="px-3 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                          >
+                            {[1,2,3,4,5,6,7,8].map((s) => <option key={s} value={s}>Sem {s}</option>)}
+                          </select>
+                          <button onClick={() => setEditingId(null)} className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700">Cancel</button>
+                          <button onClick={() => saveEdit(subj.code)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Save</button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                            {subj.name?.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{subj.name}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{subj.code} &middot; Sem {subj.semester}</p>
+                          </div>
+                          <button
+                            onClick={() => startEdit({ id: subj.code, subject: subj.name, semester: subj.semester })}
+                            className="px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
+                          >
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Shell>

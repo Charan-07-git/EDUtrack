@@ -13,9 +13,16 @@ export default function Page() {
   const [filter, setFilter] = useState<'all' | 'below75' | 'above75'>('all');
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [sessionId, setSessionId] = useState<string>('');
 
   useEffect(() => {
-    api(`/api/teacher/student-report/${classId}`).then(setData);
+    api(`/api/teacher/student-report/${classId}`).then((d) => {
+      setData(d);
+      if (d.class?.sessions?.length) {
+        const latest = d.class.sessions[d.class.sessions.length - 1];
+        setSessionId(latest.id);
+      }
+    });
   }, [classId]);
 
   if (!data) return <Loader />;
@@ -33,7 +40,8 @@ export default function Page() {
   };
 
   const handleBulkCorrect = async () => {
-    await api(`/api/sessions/${classId}/bulk-attendance`, {
+    if (!sessionId) return;
+    await api(`/api/sessions/${sessionId}/bulk-attendance`, {
       method: 'POST',
       body: JSON.stringify({ studentIds: selected }),
     });
@@ -95,7 +103,13 @@ export default function Page() {
 
         {/* List */}
         <div className="space-y-3">
-          {filtered.map((s: any, i: number) => (
+          {filtered.length === 0 ? (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-sm border border-slate-100 dark:border-slate-700">
+              <span className="text-4xl block mb-3">👥</span>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">No students found</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No students match the current filter</p>
+            </div>
+          ) : filtered.map((s: any, i: number) => (
             <div key={s.id} className={`group bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg hover:border-blue-100 transition-all duration-300 ${bulkMode ? 'cursor-pointer' : ''}`}
               style={{ animation: `slideIn 0.4s ease-out ${i * 60}ms both` }}
               onClick={() => bulkMode && toggleSelect(s.id)}>

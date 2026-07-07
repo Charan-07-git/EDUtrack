@@ -25,11 +25,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (localStorage.getItem("edutrack_token")) {
       api("/api/me").then((u) => {
         setUser(u);
+        if (u) localStorage.setItem("edutrack_user", JSON.stringify(u));
         if (u && needsSetup(u)) {
           const path = u.role === "TEACHER" ? "/teacher/setup" : "/student/setup";
           router.replace(path);
         }
-      }).catch(() => {});
+      }).catch(() => {
+        localStorage.removeItem("edutrack_token");
+        localStorage.removeItem("edutrack_user");
+      });
     }
   }, []);
 
@@ -39,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password, role }),
     });
     localStorage.setItem("edutrack_token", d.token);
+    if (d.user) localStorage.setItem("edutrack_user", JSON.stringify(d.user));
     setUser(d.user);
     if (needsSetup(d.user)) {
       router.replace(d.user.role === "TEACHER" ? "/teacher/setup" : "/student/setup");
@@ -55,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(f),
     });
     localStorage.setItem("edutrack_token", d.token);
+    if (d.user) localStorage.setItem("edutrack_user", JSON.stringify(d.user));
     setUser(d.user);
     if (needsSetup(d.user)) {
       router.replace(d.user.role === "TEACHER" ? "/teacher/setup" : "/student/setup");
@@ -69,12 +75,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const u = await api("/api/me");
       setUser(u);
+      if (u) localStorage.setItem("edutrack_user", JSON.stringify(u));
       return u;
     } catch { return null; }
   }
 
   function logout() {
     localStorage.removeItem("edutrack_token");
+    localStorage.removeItem("edutrack_user");
     setUser(null);
     router.push("/login");
   }

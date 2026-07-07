@@ -50,9 +50,12 @@ export default function Page() {
                     )}
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">{a.content}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
-                    {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {a.semesters ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">Sem {a.semesters.join(', ')}</span> : <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-medium">All Semesters</span>}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  binaryTargets   = ["native", "debian-openssl-3.0.x"]
+  binaryTargets   = ["native", "debian-openssl-3.0.x", "windows"]
 }
 
 datasource db {
@@ -42,6 +42,7 @@ model User {
   teacherClasses Class[]       @relation("TeacherClasses")
   attendances    Attendance[]
   announcements  Announcement[]
+  notifications  Notification[]
 }
 model Class {
   id        String        @id @default(cuid())
@@ -91,6 +92,11 @@ model Attendance {
   faceVerified     Boolean
   locationVerified Boolean
   facePhotoUrl     String?
+  photo            String?
+  studentName      String?
+  rollNumber       String?
+  subjectId        String?
+  teacherId        String?
 
   session          Session   @relation(fields: [sessionId], references: [id])
   student          User      @relation(fields: [studentId], references: [id])
@@ -115,7 +121,22 @@ model Announcement {
   content   String
   createdAt DateTime @default(now())
   expiresAt DateTime?
+  semesters Json?
 
   class     Class    @relation(fields: [classId], references: [id])
   teacher   User     @relation(fields: [teacherId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   @default("announcement")
+  title     String
+  message   String?
+  link      String?
+  isRead    Boolean  @default(false)
+  announcementId String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
 }

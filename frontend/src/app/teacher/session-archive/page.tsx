@@ -3,6 +3,7 @@ import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function Page() {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function Page() {
     api('/api/teacher/session-archive').then((d) => {
       setSessions(d);
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, []);
 
   return (
@@ -27,9 +28,10 @@ export default function Page() {
 
         <div className="space-y-3">
           {sessions.map((s, i) => (
-            <div
+            <Link
               key={s.id}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg dark:hover:shadow-slate-900 transition-all duration-300"
+              href={`/teacher/session/${s.classId}`}
+              className="block bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg dark:hover:shadow-slate-900 transition-all duration-300"
               style={{ animation: `slideIn 0.4s ease-out ${i * 80}ms both` }}
             >
               <div className="flex items-center justify-between">
@@ -51,7 +53,7 @@ export default function Page() {
                   </p>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
 
           {sessions.length === 0 && loaded && (

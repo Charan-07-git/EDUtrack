@@ -13,6 +13,8 @@ const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   4: [7, 8],
 };
 
+const DEPARTMENTS = ["CSE"];
+
 export default function Page() {
   const { user, logout } = useAuth();
   const [name, setName] = useState('');
@@ -54,6 +56,7 @@ export default function Page() {
         if (sem) setSubjects(sem.subjects);
       }).catch(() => {});
       setLoading(false);
+      setMsg('');
     }
   }, [user]);
 
@@ -62,12 +65,19 @@ export default function Page() {
     setSaving(true);
     setMsg('');
     try {
+      const body: any = { name, department };
+      if (user?.role === 'STUDENT') {
+        body.semester = semester;
+        body.year = year;
+      }
       await api('/api/me', {
         method: 'PUT',
-        body: JSON.stringify({ name, department, semester, year }),
+        body: JSON.stringify(body),
       });
-      localStorage.setItem("edutrack_year", String(year));
-      localStorage.setItem("edutrack_semester", String(semester));
+      if (user?.role === 'STUDENT') {
+        localStorage.setItem("edutrack_year", String(year));
+        localStorage.setItem("edutrack_semester", String(semester));
+      }
       if (subject) localStorage.setItem("edutrack_subject", subject);
       setMsg('Profile updated successfully');
     } catch (err: any) {
@@ -95,7 +105,7 @@ export default function Page() {
   }
 
   function compressImage(dataUrl: string, maxW = 400, quality = 0.7): Promise<string> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -106,6 +116,7 @@ export default function Page() {
         ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = dataUrl;
     });
   }
@@ -120,17 +131,20 @@ export default function Page() {
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        const token = localStorage.getItem("edutrack_token");
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ photoData: compressed, mimeType: 'image/jpeg' }),
-        });
-        if (!res.ok) { const d = await res.json(); setMsg(d.message || 'Failed to upload'); setUploading(false); return; }
-        setMsg('Photo updated successfully');
-        setUploading(false);
-        window.location.reload();
+        try {
+          const compressed = await compressImage(reader.result as string);
+          const token = localStorage.getItem("edutrack_token");
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
+            method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ photoData: compressed, mimeType: 'image/jpeg' }),
+          });
+          if (!res.ok) { const d = await res.json(); setMsg(d.message || 'Failed to upload'); setUploading(false); return; }
+          setMsg('Photo updated successfully');
+          setUploading(false);
+          window.location.reload();
+        } catch { setMsg('Failed to upload'); setUploading(false); }
       };
+      reader.onerror = () => { setMsg('Failed to read file'); setUploading(false); };
       reader.readAsDataURL(file);
     } catch { setMsg('Failed to upload'); setUploading(false); }
   }
@@ -177,7 +191,15 @@ export default function Page() {
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Department</label>
-              <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" />
+              <select
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+              >
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
             </div>
             {user?.role === 'STUDENT' && (
               <p className="text-xs text-slate-400 dark:text-slate-500">Set your year and semester in the Academic Setup section below</p>
@@ -191,44 +213,56 @@ export default function Page() {
         {/* Academic Setup */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.1s both' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Academic Setup</h3>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((y) => (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => {
-                    setYear(y);
-                    const sems = YEAR_SEMESTER_MAP[y];
-                    if (!sems.includes(semester)) setSemester(sems[0]);
-                    setSubject('');
-                  }}
-                  className={`p-3 rounded-xl border-2 text-center transition-all ${
-                    year === y
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
-                  }`}
-                >
-                  <span className="text-lg font-bold block">{y} Year</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              {(YEAR_SEMESTER_MAP[year] || []).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSemester(s)}
-                  className={`flex-1 p-3 rounded-xl border-2 text-center transition-all ${
-                    semester === s
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
-                  }`}
-                >
-                  Sem {s}
-                </button>
-              ))}
-            </div>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Select your current academic year and semester. This sets your registered semester across the application.</p>
+          <div className="space-y-6">
+            {user?.role === 'STUDENT' && (
+              <>
+              <div>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 block">Academic Year</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[1, 2, 3, 4].map((y) => (
+                    <button
+                      key={y}
+                      type="button"
+                      onClick={() => {
+                        setYear(y);
+                        const sems = YEAR_SEMESTER_MAP[y];
+                        if (!sems.includes(semester)) setSemester(sems[0]);
+                        setSubject('');
+                      }}
+                      className={`p-3 rounded-xl border-2 text-center transition-all ${
+                        year === y
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                          : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
+                      }`}
+                    >
+                      <span className="text-lg font-bold block">{y} Year</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="border-t border-slate-100 dark:border-slate-700" />
+              <div>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 block">Current Semester</label>
+                <div className="flex gap-3">
+                  {(YEAR_SEMESTER_MAP[year] || []).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSemester(s)}
+                      className={`flex-1 p-3 rounded-xl border-2 text-center transition-all ${
+                        semester === s
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                          : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
+                      }`}
+                    >
+                      Sem {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              </>
+            )}
             {user?.role === 'TEACHER' && (
               <div>
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Subject</label>
@@ -274,7 +308,7 @@ export default function Page() {
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Profile Photo</h3>
           <div className="flex items-center gap-5">
             <div className="h-20 w-20 rounded-2xl overflow-hidden ring-2 ring-blue-400/30">
-              <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="h-full w-full object-cover" alt="Profile" />
+              <img src={user?.photoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='35' r='18' fill='%2394a3b8'/%3E%3Cpath d='M12 82c0-22 17-38 38-38s38 16 38 38' fill='%2394a3b8'/%3E%3C/svg%3E"} className="h-full w-full object-cover" alt="Profile" />
             </div>
             <div>
               <button

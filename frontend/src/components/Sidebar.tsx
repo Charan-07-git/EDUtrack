@@ -154,7 +154,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
           <div className="flex items-center gap-2">
             <div className="relative group cursor-pointer shrink-0" onClick={() => setPhotoModal(true)}>
               <div className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-blue-400/30 group-hover:ring-blue-400 transition-all">
-                <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="h-full w-full object-cover" alt="Profile" />
+                <img src={user?.photoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='35' r='18' fill='%2394a3b8'/%3E%3Cpath d='M12 82c0-22 17-38 38-38s38 16 38 38' fill='%2394a3b8'/%3E%3C/svg%3E"} className="h-full w-full object-cover" alt="Profile" />
               </div>
               <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
@@ -277,7 +277,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(false)}>
           <div className="bg-slate-900 rounded-2xl p-4 max-w-sm w-full mx-4 shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center mb-4">
-              <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="w-48 h-48 rounded-2xl object-cover ring-4 ring-blue-500/30" alt="Profile" />
+              <img src={user?.photoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='35' r='18' fill='%2394a3b8'/%3E%3Cpath d='M12 82c0-22 17-38 38-38s38 16 38 38' fill='%2394a3b8'/%3E%3C/svg%3E"} className="w-48 h-48 rounded-2xl object-cover ring-4 ring-blue-500/30" alt="Profile" />
             </div>
             <div className="space-y-2">
               <button

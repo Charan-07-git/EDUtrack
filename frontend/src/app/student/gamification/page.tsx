@@ -11,11 +11,12 @@ export default function Page() {
   const { user } = useAuth();
 
   useEffect(() => {
-    api('/api/leaderboard').then(setRows);
+    api('/api/leaderboard').then(setRows).catch(() => {});
   }, []);
 
+  const isOnLeaderboard = rows.some((r) => r.name === user?.name);
+  const userRank = isOnLeaderboard ? rows.findIndex((r) => r.name === user?.name) + 1 : 0;
   const userStreak = rows.find((r) => r.name === user?.name)?.streak || 0;
-  const userRank = rows.findIndex((r) => r.name === user?.name) + 1;
 
   const podiumOrder = rows.length >= 3 ? [rows[1], rows[0], rows[2]] : rows;
 
@@ -37,7 +38,7 @@ export default function Page() {
               <p className="text-slate-300 text-sm mt-1">Top performing students by attendance</p>
             </div>
             <div className="flex gap-4">
-              {userRank > 0 && (
+              {isOnLeaderboard && (
                 <div className="bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm text-center">
                   <p className="text-xs text-slate-300 uppercase tracking-wide">Your Rank</p>
                   <p className="text-2xl font-extrabold">#{userRank}</p>

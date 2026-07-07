@@ -149,7 +149,7 @@ r.get("/classes/today", async (req, res) => {
               data: {
                 subject: sub.name,
                 code: sub.code,
-                department: sub.department || "Computer Science",
+                department: sub.department || "CSE",
                 semester: sub.semester,
                 year: Math.ceil(sub.semester / 2),
                 teacherId: req.user.id,
@@ -209,17 +209,22 @@ r.get("/teacher/quick-analysis", async (req, res) => {
 });
 
 r.get("/teacher/classes", async (req, res) => {
-  const classes = await prisma.class.findMany({
-    where: { teacherId: req.user.id },
-    select: {
-      id: true,
-      subject: true,
-      code: true,
-      department: true,
-      semester: true,
-    },
-  });
-  res.json(classes);
+  try {
+    const classes = await prisma.class.findMany({
+      where: { teacherId: req.user.id },
+      select: {
+        id: true,
+        subject: true,
+        code: true,
+        department: true,
+        semester: true,
+      },
+    });
+    res.json(classes);
+  } catch (err) {
+    console.error("GET teacher/classes error:", err?.message || err);
+    res.status(500).json({ message: err?.message || "Failed to load classes" });
+  }
 });
 
 r.get("/teacher/student-report/:classId", async (req, res) => {
@@ -285,32 +290,81 @@ r.get("/teacher/student-report/:classId", async (req, res) => {
   });
 });
 
-r.get("/announcements", async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user.department || !user.semester) return res.json([]);
-  const classes = await prisma.class.findMany({
-    where: { department: user.department, semester: user.semester },
-    select: { id: true },
-  });
-  const classIds = classes.map((c) => c.id);
-  const announcements = await prisma.announcement.findMany({
-    where: {
-      classId: { in: classIds },
-      OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
-    },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
-  res.json(announcements);
+r.post("/teacher/subjects", async (req, res) => {
+  try {
+    const { name, semester } = req.body;
+    if (!name || !semester) {
+      return res.status(400).json({ message: "Subject name and semester are required" });
+    }
+    const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 4);
+    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `${initials}${suffix}`;
+    const cls = await prisma.class.create({
+      data: {
+        subject: name,
+        code,
+        department: "CSE",
+        semester: Number(semester),
+        year: Math.ceil(Number(semester) / 2),
+        teacherId: req.user.id,
+      },
+    });
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    let subjects = [];
+    if (user.selectedSubject) {
+      try { subjects = JSON.parse(user.selectedSubject); } catch { subjects = []; }
+    }
+    subjects.push({ semester: cls.semester, code: cls.code, name: cls.subject, department: cls.department });
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { selectedSubject: JSON.stringify(subjects) },
+    });
+    res.json(cls);
+  } catch (err) {
+    console.error("create subject error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-r.post("/announcements", async (req, res) => {
-  const { classId, title, content, expiresInHours } = req.body;
-  const expiresAt = expiresInHours ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000) : null;
-  const announcement = await prisma.announcement.create({
-    data: { classId, teacherId: req.user.id, title, content, expiresAt },
-  });
-  res.json(announcement);
+r.put("/teacher/subjects/:code", async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { name, semester } = req.body;
+    const existing = await prisma.class.findFirst({
+      where: { code, teacherId: req.user.id },
+    });
+    if (existing) {
+      await prisma.class.update({
+        where: { id: existing.id },
+        data: {
+          ...(name !== undefined && { subject: name }),
+          ...(semester !== undefined && { semester: Number(semester), year: Math.ceil(Number(semester) / 2) }),
+        },
+      });
+    }
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    let subjects = [];
+    if (user.selectedSubject) {
+      try { subjects = JSON.parse(user.selectedSubject); } catch { subjects = []; }
+    }
+    const idx = subjects.findIndex((s) => s.code === code);
+    if (idx !== -1) {
+      subjects[idx] = {
+        semester: semester !== undefined ? Number(semester) : subjects[idx].semester,
+        code,
+        name: name || subjects[idx].name,
+        department: subjects[idx].department,
+      };
+    }
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { selectedSubject: JSON.stringify(subjects) },
+    });
+    res.json({ code, subject: name, semester: Number(semester) });
+  } catch (err) {
+    console.error("edit subject error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 r.get("/teacher/my-subjects", async (req, res) => {
@@ -351,7 +405,7 @@ r.put("/teacher/my-subjects", async (req, res) => {
           data: {
             subject: sub.name,
             code: sub.code,
-            department: sub.department || "Computer Science",
+            department: sub.department || "CSE",
             semester: sub.semester,
             year: Math.ceil(sub.semester / 2),
             teacherId: req.user.id,
@@ -465,6 +519,15 @@ r.get("/goals", async (req, res) => {
     return { subject: c.subject, percent, classesNeeded, total, attended };
   });
   res.json(goals);
+});
+
+r.get("/classes/:id", async (req, res) => {
+  const cls = await prisma.class.findUnique({
+    where: { id: req.params.id },
+    include: { timetable: true, sessions: true },
+  });
+  if (!cls) return res.status(404).json({ message: "Class not found" });
+  res.json(cls);
 });
 
 export default r;

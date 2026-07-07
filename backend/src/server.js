@@ -75,6 +75,7 @@ async function init() {
     const attendanceRoutes = (await import("./routes/attendance.routes.js")).default;
     const timetableRoutes = (await import("./routes/timetable.routes.js")).default;
     const announcementRoutes = (await import("./routes/announcement.routes.js")).default;
+    const notificationRoutes = (await import("./routes/notification.routes.js")).default;
 
     app.use("/api/auth", authRoutes);
     app.use("/api", dataRoutes);
@@ -82,6 +83,7 @@ async function init() {
     app.use("/api/attendance", attendanceRoutes);
     app.use("/api/timetable", timetableRoutes);
     app.use("/api/announcements", announcementRoutes);
+    app.use("/api/notifications", notificationRoutes);
 
     io.on("connection", (socket) => {
       socket.on("join:session", (id) => socket.join(id));
@@ -90,7 +92,7 @@ async function init() {
       });
     });
 
-    console.log(`Routes: ${6} registered`);
+    console.log(`Routes: ${7} registered`);
   } catch (e) {
     console.error("Route init error:", e?.message || e);
     console.error(e?.stack || "");

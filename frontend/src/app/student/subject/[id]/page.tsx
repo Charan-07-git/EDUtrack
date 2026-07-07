@@ -23,7 +23,7 @@ export default function Page() {
         }));
         setClassData({ ...cls, sessions });
       }
-    });
+    }).catch(() => {});
   }, [id, user?.id]);
 
   if (!classData) return <div className="ml-72 p-8">Loading...</div>;

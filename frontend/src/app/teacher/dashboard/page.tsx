@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import Loader from '@/components/Loader';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -17,14 +16,6 @@ const tiles = [
     label: "Today's Classes",
     value: null as null | 'classes',
     icon: <svg className="w-7 h-7 text-white/40 absolute top-3 right-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>,
-  },
-  {
-    href: '/teacher/analytics',
-    gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
-    shadow: 'shadow-emerald-500/25',
-    label: 'Quick Analysis',
-    value: 'sessions' as const,
-    icon: <svg className="w-7 h-7 text-white/40 absolute top-3 right-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>,
   },
   {
     href: '/teacher/announcements',
@@ -93,12 +84,11 @@ function AnimatedCounter({ to, suffix = '' }: { to: number; suffix?: string }) {
 export default function Page() {
   const [d, setD] = useState<any>();
   const { user, refreshUser } = useAuth();
-  const router = useRouter();
   const [setupInfo, setSetupInfo] = useState("");
 
   useEffect(() => {
     refreshUser();
-    api('/api/teacher/dashboard').then(setD);
+    api('/api/teacher/dashboard').then(setD).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -131,7 +121,7 @@ export default function Page() {
       <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
         <div className="shrink-0">
           <div className="h-20 w-20 lg:h-24 lg:w-24 rounded-2xl overflow-hidden ring-4 ring-white/20 shadow-xl">
-            <img src={user?.photoUrl || "https://i.pravatar.cc/100"} className="h-full w-full object-cover" alt="Profile" />
+            <img src={user?.photoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='35' r='18' fill='%2394a3b8'/%3E%3Cpath d='M12 82c0-22 17-38 38-38s38 16 38 38' fill='%2394a3b8'/%3E%3C/svg%3E"} className="h-full w-full object-cover" alt="Profile" />
           </div>
         </div>
         <div className="flex-1 min-w-0">
@@ -189,8 +179,7 @@ export default function Page() {
   function getValue(tile: typeof tiles[0]): number | string {
     if (!d) return '';
     if (tile.value === 'classes') return d.classes.length;
-    if (tile.value === 'sessions') return d.classes.reduce((a: any, c: any) => a + c.sessions.length, 0);
-    if (tile.href === '/teacher/low-attendance') return 2;
+    if (tile.href === '/teacher/low-attendance') return d.lowAttendance?.length || 0;
     return '';
   }
 

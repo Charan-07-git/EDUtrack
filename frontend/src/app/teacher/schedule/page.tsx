@@ -37,12 +37,12 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api('/api/timetable/departments').then(setDeptSem);
+    api('/api/timetable/departments').then(setDeptSem).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (selectedDept && selectedSem) {
-      api(`/api/timetable/by-department?department=${encodeURIComponent(selectedDept)}&semester=${selectedSem}`).then(setClasses);
+      api(`/api/timetable/by-department?department=${encodeURIComponent(selectedDept)}&semester=${selectedSem}`).then(setClasses).catch(() => {});
     }
   }, [selectedDept, selectedSem]);
 

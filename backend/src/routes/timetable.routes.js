@@ -29,7 +29,7 @@ r.get("/departments", async (req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
     const semesters = Object.keys(data.default.semesters).map(Number).sort((a, b) => a - b);
-    const result = semesters.map((s) => ({ department: data.default.department || "Computer Science", semester: s }));
+    const result = semesters.map((s) => ({ department: data.default.department || "CSE", semester: s }));
     res.json(result);
   } catch {
     res.json([]);
@@ -105,7 +105,7 @@ r.get("/by-faculty", async (req, res) => {
           if (matches && matchedCode && !seen.has(`${sem}-${matchedCode}`)) {
             seen.add(`${sem}-${matchedCode}`);
             const name = semData.subjects[matchedCode] || matchedCode;
-            subjects.push({ semester: sem, code: matchedCode, name, department: data.default.department || "Computer Science" });
+            subjects.push({ semester: sem, code: matchedCode, name, department: data.default.department || "CSE" });
           }
         }
       }
@@ -160,7 +160,7 @@ r.get("/available-subjects", async (req, res) => {
       const sem = Number(num);
       const subjects = info.subjects || {};
       for (const [code, name] of Object.entries(subjects)) {
-        result.push({ semester: sem, code, name, department: data.default.department || "Computer Science" });
+        result.push({ semester: sem, code, name, department: data.default.department || "CSE" });
       }
     }
     const semFilter = req.query.semester;
