@@ -150,7 +150,10 @@ r.get("/:sessionId/count", async (req, res) => {
 r.post("/mark", async (req, res) => {
   const { sessionId, token, lat, lng, faceVerified, facePhoto, faceDescriptor } = req.body;
 
-  const s = await prisma.session.findUnique({ where: { id: sessionId } });
+  const s = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { class: { select: { department: true, semester: true } } },
+  });
   if (
     !s ||
     s.status !== "QR_ACTIVE" ||
@@ -159,6 +162,18 @@ r.post("/mark", async (req, res) => {
     s.qrExpiresAt < new Date()
   ) {
     return res.status(400).json({ message: "QR expired or invalid" });
+  }
+
+  const student = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { department: true, semester: true },
+  });
+  if (
+    !student ||
+    student.department !== s.class.department ||
+    student.semester !== s.class.semester
+  ) {
+    return res.status(403).json({ message: "This QR is not for your class" });
   }
 
   let locationVerified = false;
