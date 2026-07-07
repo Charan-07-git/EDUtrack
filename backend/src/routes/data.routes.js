@@ -111,7 +111,7 @@ r.get("/teacher/dashboard", async (req, res) => {
   res.json({ classes, lowAttendance: lowCount });
 });
 
-async function computeLowAttendance(teacherId) {
+async function computeLowAttendance(teacherId: string) {
   const classes = await prisma.class.findMany({
     where: { teacherId },
     include: { sessions: { include: { attendances: true } } },
