@@ -73,33 +73,24 @@ r.post("/signup", async (req, res) => {
 });
 
 r.post("/login", async (req, res) => {
-  try {
-    const { email, password, role } = req.body;
+  const { email, password, role } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email/Roll number and password are required" });
-    }
-
-    let user;
-    if (role === "STUDENT") {
-      user = await prisma.user.findFirst({ where: { rollNumber: email } });
-    } else {
-      user = await prisma.user.findUnique({ where: { email } });
-    }
-
-    if (!user || user.role !== role || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    res.json({ token: sign(user), user });
-  } catch (err) {
-    console.error("Login error:", err?.message || err);
-    console.error("Login stack:", err?.stack || "");
-    const msg = err?.message?.includes("Can't reach database server")
-      ? "Database is unavailable. Please contact the administrator."
-      : `Server error: ${err?.message || "Unknown"}`;
-    res.status(500).json({ message: msg });
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email/Roll number and password are required" });
   }
+
+  let user;
+  if (role === "STUDENT") {
+    user = await prisma.user.findFirst({ where: { rollNumber: email } });
+  } else {
+    user = await prisma.user.findUnique({ where: { email } });
+  }
+
+  if (!user || user.role !== role || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  res.json({ token: sign(user), user });
 });
 
 r.post("/upload-photo", auth, async (req, res) => {
