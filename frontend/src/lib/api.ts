@@ -1,4 +1,6 @@
-const API = process.env.NEXT_PUBLIC_API_URL || "https://edutrack-7yt9.onrender.com";
+const API = typeof window !== "undefined" && location.hostname === "localhost"
+  ? "http://localhost:4000"
+  : "https://edutrack-7yt9.onrender.com";
 
 export function token() {
   return typeof window === "undefined"
