@@ -197,17 +197,6 @@ r.get("/analytics", async (req, res) => {
   });
 });
 
-r.get("/teacher/quick-analysis", async (req, res) => {
-  const classes = await prisma.class.findMany({
-    where: { teacherId: req.user.id },
-    include: { sessions: true, timetable: true },
-  });
-  const assigned = classes.length;
-  const taken = classes.reduce((a, c) => a + c.sessions.filter((s) => s.endTime).length, 0);
-  const pending = classes.reduce((a, c) => a + c.timetable.length * 15 - c.sessions.length, 0);
-  res.json({ assigned, taken, pending: Math.max(pending, 0) });
-});
-
 r.get("/teacher/classes", async (req, res) => {
   try {
     const classes = await prisma.class.findMany({
