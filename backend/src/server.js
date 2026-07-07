@@ -27,9 +27,10 @@ const io = new Server(server, {
 });
 app.set("io", io);
 
+const allowedOrigins = [process.env.FRONTEND_URL, "https://edutrack-ten-inky.vercel.app", "https://edutrack.vercel.app"].filter(Boolean);
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, cb) => cb(null, allowedOrigins.includes(origin) || !origin),
     credentials: true,
   })
 );
