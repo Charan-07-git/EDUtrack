@@ -85,15 +85,27 @@ r.get("/by-faculty", async (req, res) => {
     const seen = new Set();
     for (const [semStr, semData] of Object.entries(semesters)) {
       const sem = Number(semStr);
-      for (const [day, slots] of Object.entries(semData.timetable)) {
+      for (const slots of Object.values(semData.timetable)) {
         for (const slot of slots) {
-          if (slot.faculty === code || slot.facultyCode === code || (slot.labs && slot.labs.some((l) => l.faculty === code))) {
-            const subjCode = slot.code || (slot.labs && slot.labs.find((l) => l.faculty === code)?.code);
-            if (subjCode && !seen.has(`${sem}-${subjCode}`)) {
-              seen.add(`${sem}-${subjCode}`);
-              const name = semData.subjects[subjCode] || subjCode;
-              subjects.push({ semester: sem, code: subjCode, name, department: data.default.department || "Computer Science" });
+          let matches = false;
+          let matchedCode = null;
+          if (slot.facultyCode === code || (slot.facultyCode && slot.facultyCode.split(" / ").includes(code))) {
+            matches = true;
+            matchedCode = slot.code;
+          }
+          if (slot.labs) {
+            for (const lab of slot.labs) {
+              if (lab.facultyCode === code || (lab.facultyCode && lab.facultyCode.split(" / ").includes(code))) {
+                matches = true;
+                matchedCode = lab.code;
+                break;
+              }
             }
+          }
+          if (matches && matchedCode && !seen.has(`${sem}-${matchedCode}`)) {
+            seen.add(`${sem}-${matchedCode}`);
+            const name = semData.subjects[matchedCode] || matchedCode;
+            subjects.push({ semester: sem, code: matchedCode, name, department: data.default.department || "Computer Science" });
           }
         }
       }
