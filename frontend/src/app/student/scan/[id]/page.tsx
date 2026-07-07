@@ -6,13 +6,12 @@ import { api, API } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-type Step = 'scan' | 'locating' | 'camera' | 'detecting' | 'confirm' | 'saving' | 'done' | 'error';
+type Step = 'scan' | 'locating' | 'camera' | 'saving' | 'done' | 'error';
 
 const STEPS = [
   { key: 'scan', label: 'Scan QR' },
   { key: 'locating', label: 'Location' },
-  { key: 'camera', label: 'Face Verify' },
-  { key: 'confirm', label: 'Confirm' },
+  { key: 'camera', label: 'Photo' },
   { key: 'saving', label: 'Save' },
 ];
 
@@ -25,28 +24,14 @@ export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const photoRef = useRef<string | null>(null);
-  const modelsLoaded = useRef(false);
-  const faceapiRef = useRef<any>(null);
-  const faceRecogReady = useRef(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const storedDescriptorRef = useRef<number[] | null>(null);
-  const liveDescriptorRef = useRef<any>(null);
-  const [matchPercent, setMatchPercent] = useState<number | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [storedPhotoUrl, setStoredPhotoUrl] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
-  const hasStartedFaceRef = useRef(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const cancelledRef = useRef(false);
-  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    hasStartedFaceRef.current = false;
     cancelledRef.current = false;
   }, []);
-
-  useEffect(() => {
-    if (step === 'camera' || step === 'detecting') hasStartedFaceRef.current = true;
-  }, [step]);
 
   function onQrScanned(decoded: string) {
     stopCamera();
@@ -60,9 +45,9 @@ export default function Page() {
         (pos) => {
           setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           setStep('camera');
-          setMsg('Wait to verify and mark attendance');
+          setMsg('Taking photo...');
         },
-        (err) => {
+        () => {
           setStep('error');
           setMsg('Location permission denied. Please enable GPS and try again.');
         },
@@ -135,43 +120,19 @@ export default function Page() {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
-        if (!modelsLoaded.current) {
-          setMsg('Loading face detection model...');
-          const faceapi = await import('face-api.js');
-          faceapiRef.current = faceapi;
-          setMsg('Loading detection model...');
-          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-          setMsg('Loading recognition model...');
-          try {
-            await Promise.all([
-              faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-              faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-            ]);
-            faceRecogReady.current = true;
-          } catch {
-            faceRecogReady.current = false;
-          }
-          modelsLoaded.current = true;
-        }
 
-        const user = await api('/api/me');
-        if (!user.faceRegistered) {
-          if (!cancelled) {
-            setStep('error');
-            setMsg('Face not registered. Please go to Settings and register your face first.');
-          }
-          return;
-        }
-        if (user.faceDescriptor && Array.isArray(user.faceDescriptor) && user.faceDescriptor.length === 128) {
-          storedDescriptorRef.current = user.faceDescriptor;
-          if (user.photoUrl) setStoredPhotoUrl(user.photoUrl);
-        }
-
-        if (!cancelled) {
-          setStep('detecting');
-          setMsg('Wait to verify and mark attendance');
-          detectFace();
-        }
+        setCountdown(4);
+        const interval = setInterval(() => {
+          setCountdown(prev => {
+            if (prev === null) return null;
+            if (prev <= 1) {
+              clearInterval(interval);
+              captureAndSave();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } catch (e: any) {
         if (!cancelled) {
           setStep('error');
@@ -182,113 +143,41 @@ export default function Page() {
     return () => {
       cancelled = true;
       cancelledRef.current = true;
-      if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
     };
   }, [step]);
 
-  async function detectFace() {
-    if (cancelledRef.current) return;
-    const video = videoRef.current;
-    const faceapi = faceapiRef.current;
-    if (!video || !video.videoWidth || !faceapi) {
-      detectTimerRef.current = setTimeout(detectFace, 500);
-      return;
-    }
-
-    try {
-      let detection;
-      if (faceRecogReady.current) {
-        detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-      } else {
-        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }));
-        if (det) {
-          detection = { ...det, descriptor: null, landmarks: null };
-        } else {
-          detection = null;
-        }
-      }
-
-      if (cancelledRef.current) return;
-
-      if (!detection) {
-        setMsg('No face detected. Please look at the camera...');
-        if (retryCount < 30) {
-          setRetryCount(c => c + 1);
-          detectTimerRef.current = setTimeout(detectFace, 1000);
-        } else {
-          setStep('error');
-          setMsg('Face detection timed out. Please try again.');
-        }
-        return;
-      }
-
-      liveDescriptorRef.current = detection.descriptor;
-      setMsg('Face detected! Verifying...');
-
-      if (cancelledRef.current) return;
-
-      if (faceRecogReady.current && storedDescriptorRef.current && detection.descriptor) {
-        const stored = new Float32Array(storedDescriptorRef.current);
-        const distance = faceapi.euclideanDistance(detection.descriptor, stored);
-        const percent = Math.round(Math.max(0, Math.min(100, (1 - distance / 0.8) * 100)));
-        setMatchPercent(percent);
-
-        if (distance < 0.6) {
-          await capturePhoto();
-          if (cancelledRef.current) return;
-          setMsg(`Face verified! Match: ${percent}%`);
-          setStep('confirm');
-        } else {
-          setMsg(`Face didn't match (${percent}%). Please try again...`);
-          detectTimerRef.current = setTimeout(() => {
-            setRetryCount(0);
-            detectFace();
-          }, 2000);
-        }
-      } else {
-        await capturePhoto();
-        setStep('error');
-        setMsg('Face recognition unavailable. Please try again later.');
-      }
-    } catch {
-      if (!cancelledRef.current) detectTimerRef.current = setTimeout(detectFace, 1000);
-    }
-  }
-
-  async function capturePhoto() {
+  function captureAndSave() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas) {
+      setStep('error');
+      setMsg('Failed to capture photo');
+      return;
+    }
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      setStep('error');
+      setMsg('Failed to capture photo');
+      return;
+    }
     ctx.drawImage(video, 0, 0);
     photoRef.current = canvas.toDataURL('image/jpeg', 0.7);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
-  }
-
-  async function confirmAndSave() {
-    setStep('saving');
-    setMsg('Saving attendance...');
-    await saveAttendance();
-  }
-
-  function retakePhoto() {
-    setRetryCount(0);
-    setMatchPercent(null);
-    liveDescriptorRef.current = null;
-    photoRef.current = null;
-    setStep('camera');
-    setMsg('Taking another photo...');
+    saveAttendance();
   }
 
   async function saveAttendance() {
+    setStep('saving');
+    setMsg('Saving attendance...');
     if (!payload) { setStep('error'); setMsg('Missing session data'); return; }
     try {
       const body: any = {
@@ -301,15 +190,6 @@ export default function Page() {
         body.lat = coords.lat;
         body.lng = coords.lng;
       }
-
-      const faceapi = faceapiRef.current;
-      if (liveDescriptorRef.current && faceapi) {
-        const desc = Array.from(liveDescriptorRef.current);
-        if (desc.length === 128) {
-          body.faceDescriptor = desc;
-        }
-      }
-
       await api('/api/sessions/mark', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -322,11 +202,10 @@ export default function Page() {
     }
   }
 
-  const stepIndex = STEPS.findIndex((s) => {
+  const stepIndex = STEPS.findIndex(s => {
     if (s.key === step) return true;
-    if (step === 'detecting' && s.key === 'camera') return true;
     if (step === 'done' && s.key === 'saving') return true;
-    if (step === 'error') return s.key === (hasStartedFaceRef.current ? 'saving' : 'scan');
+    if (step === 'error') return s.key === 'scan';
     return false;
   });
 
@@ -414,89 +293,30 @@ export default function Page() {
           </div>
         )}
 
-        {/* Camera / Detecting Face */}
-        {(step === 'camera' || step === 'detecting') && (
+        {/* Camera */}
+        {step === 'camera' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center justify-center gap-2">
-              <span className="text-xs font-medium text-slate-300">Wait to verify and mark attendance</span>
-              {storedPhotoUrl && (
-                <div className="relative group">
-                  <img src={storedPhotoUrl} alt="Stored" className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-400/60" />
-                  <div className="absolute -top-1 -right-1 w-9 h-9 rounded-full bg-blue-500/20 animate-ping" />
-                </div>
-              )}
+              <span className="text-xs font-medium text-slate-300">Capturing photo for attendance</span>
             </div>
             <div className="relative bg-black">
               <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[360px] object-cover" />
               <canvas ref={canvasRef} className="hidden" />
-              {storedPhotoUrl && (
-                <div className="absolute top-2 right-2">
-                  <img src={storedPhotoUrl} alt="Stored reference" className="w-16 h-16 rounded-xl object-cover ring-2 ring-white/40 shadow-lg" />
-                  <p className="text-[9px] text-white/70 text-center mt-0.5">Stored</p>
+              {countdown !== null && countdown > 0 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                    <span className="text-6xl font-extrabold text-white drop-shadow-lg">{countdown}</span>
+                  </div>
                 </div>
               )}
-              {step === 'detecting' && (
+              {countdown === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 rounded-full border-2 border-emerald-400/60 animate-pulse shadow-[0_0_30px_rgba(52,211,153,0.3)]" />
-                </div>
-              )}
-              {step === 'camera' && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 rounded-full border-2 border-dashed border-white/30" />
+                  <div className="animate-spin w-8 h-8 border-[3px] border-white border-t-transparent rounded-full" />
                 </div>
               )}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur rounded-full px-4 py-2 flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step === 'detecting' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                <span className="text-xs text-white font-medium">{msg}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Confirm Selfie */}
-        {step === 'confirm' && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 text-center">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-2">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-white">
-                Face Verified ({matchPercent}% match)
-              </h3>
-              <p className="text-emerald-200 text-xs mt-1">
-                Your face matches the stored record
-              </p>
-            </div>
-            <div className="p-6 text-center">
-              {photoRef.current && (
-                <div className="inline-block rounded-2xl ring-4 ring-emerald-200 dark:ring-emerald-800 overflow-hidden mb-5 shadow-xl">
-                  <img src={photoRef.current} alt="Captured selfie" className="w-48 h-48 object-cover" />
-                </div>
-              )}
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                Tap Confirm to mark your attendance
-              </p>
-              {storedPhotoUrl && (
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <span className="text-xs text-muted">Stored reference:</span>
-                  <img src={storedPhotoUrl} alt="Stored" className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-300" />
-                </div>
-              )}
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={retakePhoto}
-                  className="px-5 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-all text-sm"
-                >
-                  Retake
-                </button>
-                <button
-                  onClick={confirmAndSave}
-                  className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/30 text-sm"
-                >
-                  ✓ Confirm & Mark
-                </button>
+                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-xs text-white font-medium">Getting ready...</span>
               </div>
             </div>
           </div>

@@ -169,10 +169,6 @@ r.post("/mark", async (req, res) => {
     locationVerified = d <= 100;
   }
 
-  if (!faceVerified) {
-    return res.status(400).json({ message: "Face verification failed" });
-  }
-
   const a = await prisma.attendance.upsert({
     where: { sessionId_studentId: { sessionId, studentId: req.user.id } },
     update: {
