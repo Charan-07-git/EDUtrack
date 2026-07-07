@@ -16,5 +16,3 @@ services:
         value: "17.411"
       - key: CAMPUS_LNG
         value: "78.529"
-      - key: PORT
-        value: "10000"

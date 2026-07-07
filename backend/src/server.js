@@ -13,13 +13,6 @@ process.on("uncaughtException", (err) => {
 
 import "express-async-errors";
 
-import authRoutes from "./routes/auth.routes.js";
-import dataRoutes from "./routes/data.routes.js";
-import sessionRoutes from "./routes/session.routes.js";
-import attendanceRoutes from "./routes/attendance.routes.js";
-import timetableRoutes from "./routes/timetable.routes.js";
-import announcementRoutes from "./routes/announcement.routes.js";
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -40,19 +33,34 @@ app.get("/health", (_, res) =>
   res.json({ ok: true, name: "EDUTrack API" })
 );
 
-app.use("/api/auth", authRoutes);
-app.use("/api", dataRoutes);
-app.use("/api/sessions", sessionRoutes);
-app.use("/api/attendance", attendanceRoutes);
-app.use("/api/timetable", timetableRoutes);
-app.use("/api/announcements", announcementRoutes);
+async function init() {
+  try {
+    const authRoutes = (await import("./routes/auth.routes.js")).default;
+    const dataRoutes = (await import("./routes/data.routes.js")).default;
+    const sessionRoutes = (await import("./routes/session.routes.js")).default;
+    const attendanceRoutes = (await import("./routes/attendance.routes.js")).default;
+    const timetableRoutes = (await import("./routes/timetable.routes.js")).default;
+    const announcementRoutes = (await import("./routes/announcement.routes.js")).default;
 
-io.on("connection", (socket) => {
-  socket.on("join:session", (id) => socket.join(id));
-  socket.on("attendance:mark", (sessionId) => {
-    io.to(sessionId).emit("attendance:count");
-  });
-});
+    app.use("/api/auth", authRoutes);
+    app.use("/api", dataRoutes);
+    app.use("/api/sessions", sessionRoutes);
+    app.use("/api/attendance", attendanceRoutes);
+    app.use("/api/timetable", timetableRoutes);
+    app.use("/api/announcements", announcementRoutes);
+
+    io.on("connection", (socket) => {
+      socket.on("join:session", (id) => socket.join(id));
+      socket.on("attendance:mark", (sessionId) => {
+        io.to(sessionId).emit("attendance:count");
+      });
+    });
+  } catch (e) {
+    console.error("Route init error:", e?.message || e);
+  }
+}
+
+init();
 
 app.use((err, _req, res, _next) => {
   console.error("Request Error:", err?.message || err);
