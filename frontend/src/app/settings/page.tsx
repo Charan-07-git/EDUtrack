@@ -506,17 +506,16 @@ function FaceRegisterCard() {
         </div>
       )}
 
-      {cameraOpen && (
-        <div>
-          <div className="relative bg-black rounded-2xl overflow-hidden mb-3">
-            <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[280px] object-cover" />
-            <canvas ref={canvasRef} className="hidden" />
-            {!cameraReady && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="animate-spin w-8 h-8 border-2 border-white/50 border-t-transparent rounded-full" />
-              </div>
-            )}
-          </div>
+      <div className={`${cameraOpen ? '' : 'hidden'}`}>
+        <div className="relative bg-black rounded-2xl overflow-hidden mb-3">
+          <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[280px] object-cover" />
+          <canvas ref={canvasRef} className="hidden" />
+          {!cameraReady && cameraOpen && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-spin w-8 h-8 border-2 border-white/50 border-t-transparent rounded-full" />
+            </div>
+          )}
+        </div>
 
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -555,8 +554,7 @@ function FaceRegisterCard() {
           >
             {processing ? 'Processing face data...' : saving ? 'Saving...' : 'Register Face'}
           </button>
-        </div>
-      )}
+      </div>
 
       {!cameraOpen && photos.length === 0 && (
         <button onClick={openCamera} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm">

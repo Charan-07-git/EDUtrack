@@ -338,7 +338,7 @@ export default function StudentSetupPage() {
         )}
 
         {/* Photo capture */}
-        {step === "photo" && (
+        <div className={`${step === "photo" ? '' : 'hidden'}`}>
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2 text-center">
               {prevSetup ? "Update Your Photos" : "Capture Face Reference"}
@@ -356,7 +356,7 @@ export default function StudentSetupPage() {
             <div className="relative bg-black rounded-2xl overflow-hidden mb-3">
               <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-[280px] object-cover" />
               <canvas ref={canvasRef} className="hidden" />
-              {!cameraReady && (
+              {!cameraReady && step === "photo" && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="animate-spin w-8 h-8 border-2 border-white/50 border-t-transparent rounded-full" />
                 </div>
@@ -403,7 +403,7 @@ export default function StudentSetupPage() {
               {processing ? 'Processing face data...' : saving ? 'Saving...' : 'Save & Finish'}
             </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
