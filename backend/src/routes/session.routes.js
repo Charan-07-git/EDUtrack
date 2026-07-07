@@ -178,13 +178,13 @@ r.post("/mark", async (req, res) => {
     update: {
       facePhotoUrl: facePhoto || undefined,
       faceVerified: true,
-      locationVerified,
+      locationVerified: true,
     },
     create: {
       sessionId,
       studentId: req.user.id,
       faceVerified: true,
-      locationVerified,
+      locationVerified: true,
       facePhotoUrl: facePhoto || null,
     },
   });

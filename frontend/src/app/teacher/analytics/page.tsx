@@ -19,7 +19,7 @@ export default function Page() {
     Promise.all([
       api('/api/teacher/quick-analysis'),
       api('/api/teacher/classes'),
-    ]).then(([analysis, cls]: [any, any[]]) => {
+    ]).then(([analysis, cls]) => {
       setData(analysis);
       setClasses(cls);
     });

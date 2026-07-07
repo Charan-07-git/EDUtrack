@@ -49,21 +49,13 @@ export default function Page() {
       setSemester(user.semester || 5);
       setYear(user.year || 3);
       setSubject(user.selectedSubject || '');
+      api("/api/timetable/semesters").then((list: any[]) => {
+        const sem = list.find((s: any) => s.semester === (user.semester || Number(localStorage.getItem("edutrack_semester"))));
+        if (sem) setSubjects(sem.subjects);
+      }).catch(() => {});
       setLoading(false);
     }
   }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      const targetSem = user.role === 'TEACHER'
-        ? (semester || user.semester || Number(localStorage.getItem("edutrack_teacher_semester")))
-        : (user.semester || Number(localStorage.getItem("edutrack_semester")));
-      api("/api/timetable/semesters").then((list: any[]) => {
-        const sem = list.find((s: any) => s.semester === targetSem);
-        if (sem) setSubjects(sem.subjects);
-      }).catch(() => {});
-    }
-  }, [user, semester]);
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -76,7 +68,6 @@ export default function Page() {
       });
       localStorage.setItem("edutrack_year", String(year));
       localStorage.setItem("edutrack_semester", String(semester));
-      if (user?.role === "TEACHER") localStorage.setItem("edutrack_teacher_semester", String(semester));
       if (subject) localStorage.setItem("edutrack_subject", subject);
       setMsg('Profile updated successfully');
     } catch (err: any) {
@@ -239,48 +230,23 @@ export default function Page() {
               ))}
             </div>
             {user?.role === 'TEACHER' && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2 block">Semester</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[1,2,3,4,5,6,7,8].map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => {
-                          setSemester(s);
-                          setSubject('');
-                          localStorage.setItem('edutrack_teacher_semester', String(s));
-                        }}
-                        className={`p-2 rounded-xl border-2 text-center transition-all ${
-                          semester === s
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                            : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
-                        }`}
-                      >
-                        <span className="text-sm font-bold">Sem {s}</span>
-                      </button>
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Subject</label>
+                {Object.keys(subjects).length > 0 ? (
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">Select subject...</option>
+                    {Object.entries(subjects).map(([code, name]) => (
+                      <option key={code} value={code}>{name} ({code})</option>
                     ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Subject</label>
-                  {Object.keys(subjects).length > 0 ? (
-                    <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="">Select subject...</option>
-                      {Object.entries(subjects).map(([code, name]) => (
-                        <option key={code} value={code}>{name} ({code})</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-xs text-slate-400 dark:text-slate-500">No timetable data loaded for this semester.</p>
-                  )}
-                </div>
-              </>
+                  </select>
+                ) : (
+                  <p className="text-xs text-slate-400 dark:text-slate-500">No timetable data loaded for this semester.</p>
+                )}
+              </div>
             )}
           </div>
         </div>
