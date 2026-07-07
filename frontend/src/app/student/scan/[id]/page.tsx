@@ -3,7 +3,7 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
-import { useEffect, useState, useRef, use } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 type Step = 'scan' | 'camera' | 'captured' | 'validating' | 'confirm' | 'saving' | 'success' | 'error';
@@ -21,8 +21,8 @@ function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number) 
   return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function Page({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [step, setStep] = useState<Step>('scan');
   const [msg, setMsg] = useState('Point camera at the QR code');
   const [payload, setPayload] = useState<{ sessionId: string; token: string } | null>(null);

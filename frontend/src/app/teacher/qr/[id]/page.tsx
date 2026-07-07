@@ -2,11 +2,11 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api, API } from '@/lib/api';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-export default function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function Page({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [qr, setQr] = useState<any>();
   const [count, setCount] = useState(0);
   const [left, setLeft] = useState(300);
