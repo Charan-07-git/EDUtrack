@@ -92,15 +92,20 @@ function AnimatedCounter({ to, suffix = '' }: { to: number; suffix?: string }) {
 
 export default function Page() {
   const [d, setD] = useState<any>();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
   const [setupInfo, setSetupInfo] = useState("");
 
   useEffect(() => {
-    const savedSem = localStorage.getItem("edutrack_teacher_semester");
-    setSetupInfo(savedSem ? `Semester ${savedSem}` : '');
+    refreshUser();
     api('/api/teacher/dashboard').then(setD);
   }, []);
+
+  useEffect(() => {
+    if (user?.semester) {
+      setSetupInfo(`Semester ${user.semester}${user.facultyCode ? ` • ${user.facultyCode}` : ''}`);
+    }
+  }, [user?.semester, user?.facultyCode]);
 
   const [greeting, setGreeting] = useState('');
 

@@ -2,9 +2,11 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 
 export default function Page() {
+  const { refreshUser } = useAuth();
   const [allSubjects, setAllSubjects] = useState<any[]>([]);
   const [mySubjects, setMySubjects] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -108,6 +110,7 @@ export default function Page() {
         body: JSON.stringify({ subjects: mySubjects }),
       });
       await saveFacultyCode();
+      await refreshUser();
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {}
