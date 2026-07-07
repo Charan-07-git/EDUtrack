@@ -25,9 +25,14 @@ export default function Page() {
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingAcademic, setSavingAcademic] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState('');
+  const [profileMsg, setProfileMsg] = useState('');
+  const [academicMsg, setAcademicMsg] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState('');
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState('');
@@ -38,7 +43,7 @@ export default function Page() {
     const timer = setTimeout(() => {
       if (!user) {
         setLoading(false);
-        setMsg('Could not load user data. Please try logging in again.');
+        setProfileMsg('Could not load user data. Please try logging in again.');
       }
     }, 3000);
     return () => clearTimeout(timer);
@@ -56,19 +61,37 @@ export default function Page() {
         if (sem) setSubjects(sem.subjects);
       }).catch(() => {});
       setLoading(false);
-      setMsg('');
     }
   }, [user]);
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setMsg('');
+    setSavingProfile(true);
+    setProfileMsg('');
     try {
-      const body: any = { name, department };
+      await api('/api/me', {
+        method: 'PUT',
+        body: JSON.stringify({ name, department }),
+      });
+      setProfileMsg('Profile updated successfully');
+    } catch (err: any) {
+      setProfileMsg(err.message || 'Failed to update profile');
+    }
+    setSavingProfile(false);
+  }
+
+  async function saveAcademic(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingAcademic(true);
+    setAcademicMsg('');
+    try {
+      const body: any = {};
       if (user?.role === 'STUDENT') {
         body.semester = semester;
         body.year = year;
+      }
+      if (subject) {
+        body.selectedSubject = subject;
       }
       await api('/api/me', {
         method: 'PUT',
@@ -79,17 +102,31 @@ export default function Page() {
         localStorage.setItem("edutrack_semester", String(semester));
       }
       if (subject) localStorage.setItem("edutrack_subject", subject);
-      setMsg('Profile updated successfully');
+      setAcademicMsg('Academic info updated successfully');
     } catch (err: any) {
-      setMsg(err.message || 'Failed to update');
+      setAcademicMsg(err.message || 'Failed to update academic info');
     }
-    setSaving(false);
+    setSavingAcademic(false);
   }
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setMsg('');
+    setPasswordMsg('');
+
+    if (!currentPassword) {
+      setPasswordMsg('Please enter your current password');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordMsg('New password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg('New passwords do not match');
+      return;
+    }
+
+    setSavingPassword(true);
     try {
       await api('/api/me/password', {
         method: 'PUT',
@@ -97,11 +134,12 @@ export default function Page() {
       });
       setCurrentPassword('');
       setNewPassword('');
-      setMsg('Password changed successfully');
+      setConfirmPassword('');
+      setPasswordMsg('Password changed successfully');
     } catch (err: any) {
-      setMsg(err.message || 'Failed to change password');
+      setPasswordMsg(err.message || 'Failed to change password');
     }
-    setSaving(false);
+    setSavingPassword(false);
   }
 
   function compressImage(dataUrl: string, maxW = 400, quality = 0.7): Promise<string> {
@@ -124,10 +162,10 @@ export default function Page() {
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setMsg('Photo must be under 10MB'); return; }
-    if (!file.type.startsWith('image/')) { setMsg('Please select an image file'); return; }
+    if (file.size > 10 * 1024 * 1024) { setProfileMsg('Photo must be under 10MB'); return; }
+    if (!file.type.startsWith('image/')) { setProfileMsg('Please select an image file'); return; }
     setUploading(true);
-    setMsg('');
+    setProfileMsg('');
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
@@ -138,29 +176,39 @@ export default function Page() {
             method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ photoData: compressed, mimeType: 'image/jpeg' }),
           });
-          if (!res.ok) { const d = await res.json(); setMsg(d.message || 'Failed to upload'); setUploading(false); return; }
-          setMsg('Photo updated successfully');
+          if (!res.ok) { const d = await res.json(); setProfileMsg(d.message || 'Failed to upload'); setUploading(false); return; }
+          setProfileMsg('Photo updated successfully');
           setUploading(false);
           window.location.reload();
-        } catch { setMsg('Failed to upload'); setUploading(false); }
+        } catch { setProfileMsg('Failed to upload'); setUploading(false); }
       };
-      reader.onerror = () => { setMsg('Failed to read file'); setUploading(false); };
+      reader.onerror = () => { setProfileMsg('Failed to read file'); setUploading(false); };
       reader.readAsDataURL(file);
-    } catch { setMsg('Failed to upload'); setUploading(false); }
+    } catch { setProfileMsg('Failed to upload'); setUploading(false); }
   }
 
   async function deleteAccount() {
     if (confirmDelete !== 'DELETE') return;
     setDeleting(true);
-    setMsg('');
+    setProfileMsg('');
     try {
       await api('/api/me', { method: 'DELETE' });
       logout();
       router.push('/login');
     } catch (err: any) {
-      setMsg(err.message || 'Failed to delete account');
+      setProfileMsg(err.message || 'Failed to delete account');
       setDeleting(false);
     }
+  }
+
+  function MsgBanner({ msg }: { msg: string }) {
+    if (!msg) return null;
+    const isSuccess = msg.toLowerCase().includes('success');
+    return (
+      <div className={`p-4 rounded-xl text-sm font-medium ${isSuccess ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
+        {msg}
+      </div>
+    );
   }
 
   return (
@@ -175,12 +223,6 @@ export default function Page() {
           </div>
         ) : (
           <>
-            {msg && (
-              <div className={`p-4 rounded-xl text-sm font-medium ${msg.includes('success') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
-                {msg}
-              </div>
-            )}
-
         {/* Profile Info */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Profile Information</h3>
@@ -201,11 +243,9 @@ export default function Page() {
                 ))}
               </select>
             </div>
-            {user?.role === 'STUDENT' && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">Set your year and semester in the Academic Setup section below</p>
-            )}
-            <button type="submit" disabled={saving} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50">
-              Save Changes
+            <MsgBanner msg={profileMsg} />
+            <button type="submit" disabled={savingProfile} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50">
+              {savingProfile ? 'Saving...' : 'Save Profile'}
             </button>
           </form>
         </div>
@@ -214,12 +254,12 @@ export default function Page() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.1s both' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Academic Setup</h3>
           <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Select your current academic year and semester. This sets your registered semester across the application.</p>
-          <div className="space-y-6">
+          <form onSubmit={saveAcademic} className="space-y-6">
             {user?.role === 'STUDENT' && (
               <>
               <div>
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 block">Academic Year</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   {[1, 2, 3, 4].map((y) => (
                     <button
                       key={y}
@@ -236,12 +276,12 @@ export default function Page() {
                           : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
                       }`}
                     >
-                      <span className="text-lg font-bold block">{y} Year</span>
+                      <span className="text-lg font-bold block">{y}</span>
+                      <span className="text-xs block mt-0.5">Year {y}</span>
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="border-t border-slate-100 dark:border-slate-700" />
               <div>
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 block">Current Semester</label>
                 <div className="flex gap-3">
@@ -256,7 +296,7 @@ export default function Page() {
                           : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-blue-300'
                       }`}
                     >
-                      Sem {s}
+                      <span className="text-lg font-bold block">Sem {s}</span>
                     </button>
                   ))}
                 </div>
@@ -282,7 +322,11 @@ export default function Page() {
                 )}
               </div>
             )}
-          </div>
+            <MsgBanner msg={academicMsg} />
+            <button type="submit" disabled={savingAcademic} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50">
+              {savingAcademic ? 'Saving...' : 'Save Academic Info'}
+            </button>
+          </form>
         </div>
 
         {/* Change Password */}
@@ -295,10 +339,15 @@ export default function Page() {
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">New Password</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" />
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password (min 6 characters)" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" />
             </div>
-            <button type="submit" disabled={saving || !currentPassword || !newPassword} className="bg-slate-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all disabled:opacity-50">
-              Update Password
+            <div>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Confirm New Password</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" />
+            </div>
+            <MsgBanner msg={passwordMsg} />
+            <button type="submit" disabled={savingPassword} className="bg-slate-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all disabled:opacity-50">
+              {savingPassword ? 'Updating...' : 'Update Password'}
             </button>
           </form>
         </div>

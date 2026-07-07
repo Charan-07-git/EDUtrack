@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useDarkMode } from "@/context/DarkModeContext";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const teacherItems = [
   { label: "Today's Classes", href: "/teacher/today", color: "from-blue-600 to-indigo-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg> },
@@ -31,33 +31,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
   const { dark, toggle } = useDarkMode();
   const [uploading, setUploading] = useState(false);
   const [deletingPhoto, setDeletingPhoto] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
-  const [teacherSemesters, setTeacherSemesters] = useState<number[]>([]);
-  const [teacherSem, setTeacherSem] = useState<number | null>(null);
-  const [savingSem, setSavingSem] = useState(false);
-
-  useEffect(() => {
-    if (role === "teacher") {
-      api('/api/timetable/departments').then((d: any[]) => {
-        const sems = Array.from(new Set(d.map((s: any) => s.semester))).sort((a, b) => a - b);
-        setTeacherSemesters(sems);
-        const saved = localStorage.getItem('edutrack_teacher_semester');
-        if (saved && sems.includes(Number(saved))) {
-          setTeacherSem(Number(saved));
-        } else if (sems.length > 0) {
-          setTeacherSem(sems[0]);
-        }
-      });
-    }
-  }, [role]);
-
-  function handleSidebarSemesterChange(sem: number) {
-    setTeacherSem(sem);
-    localStorage.setItem('edutrack_teacher_semester', String(sem));
-    setSavingSem(true);
-    api('/api/me', { method: 'PUT', body: JSON.stringify({ semester: sem }) }).finally(() => setSavingSem(false));
-  }
 
   const items = role === "teacher" ? teacherItems : studentItems;
 
@@ -121,24 +95,8 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
 
   return (
     <>
-      {/* Mobile Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 lg:hidden bg-slate-900 text-white flex items-center justify-between p-4">
-        <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="Logo" className="h-8 w-8" />
-          <span className="font-bold text-lg">EDUTrack</span>
-        </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-white/10">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            {mobileOpen ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile Overlay */}
-      {mobileOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />}
-
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 transition-transform duration-300 overflow-y-auto scrollbar-hide ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className="fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 overflow-y-auto scrollbar-hide">
         {/* Logo */}
         <Link href={`/${role}/dashboard`} className="flex items-center gap-2 mb-3">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -160,36 +118,22 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
             </div>
             <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm text-white truncate">{user?.name || "Welcome"}</h3>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {role === "teacher" && user?.designation && (
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 rounded-md px-1.5 py-0.5">{user.designation}</span>
-                )}
-                {role === "teacher" && user?.facultyCode && (
-                  <span className="text-[10px] text-blue-300/50">[{user.facultyCode}]</span>
-                )}
-                {role === "teacher" && teacherSemesters.length > 0 ? (
-                  <div className="relative flex-1">
-                    <select
-                      value={teacherSem ?? ''}
-                      onChange={(e) => handleSidebarSemesterChange(Number(e.target.value))}
-                      className="appearance-none bg-white/10 text-[10px] text-blue-200 rounded-lg px-1.5 py-0.5 pr-5 border border-white/10 w-full cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-400"
-                    >
-                      {teacherSemesters.map((sem) => (
-                        <option key={sem} value={sem} className="text-slate-900">Sem {sem}</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
-                      <svg className="w-2.5 h-2.5 text-blue-300/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                ) : role !== "teacher" ? (
-                  <p className="text-[10px] text-blue-300/70 truncate">{user?.department + " • Sem " + user?.semester}</p>
-                ) : null}
-                {savingSem && <span className="text-[10px] text-blue-300/50">...</span>}
-              </div>
+              {role === "teacher" ? (
+                <>
+                  {user?.facultyCode && (
+                    <p className="text-sm font-bold text-blue-300 leading-tight">{user.facultyCode}</p>
+                  )}
+                  {user?.designation && (
+                    <p className="text-[11px] font-semibold text-amber-400/90 mt-0.5">{user.designation}</p>
+                  )}
+                  <p className="text-xs text-white/70 mt-0.5 truncate">{user?.name || "Welcome"}</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="font-semibold text-sm text-white truncate">{user?.name || "Welcome"}</h3>
+                  <p className="text-[10px] text-blue-300/70 truncate mt-0.5">{user?.department + " • Sem " + user?.semester}</p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -198,7 +142,6 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
         <nav className="mt-3 space-y-0.5 flex-1">
           <Link
             href={`/${role}/dashboard`}
-            onClick={() => setMobileOpen(false)}
             className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
               p === `/${role}/dashboard`
                 ? "bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg shadow-blue-500/20"
@@ -218,7 +161,6 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setMobileOpen(false)}
                 className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   active
                     ? "bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg shadow-blue-500/20"
@@ -240,7 +182,6 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
           {/* Settings */}
           <Link
             href="/settings"
-            onClick={() => setMobileOpen(false)}
             className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
               p === "/settings"
                 ? "bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg shadow-blue-500/20"
@@ -262,7 +203,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
             </svg>
             {dark ? "Light Mode" : "Dark Mode"}
           </button>
-          <button onClick={() => { setMobileOpen(false); logout(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
+          <button onClick={() => { logout(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
             <svg className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m0 0H7m6 4a5 5 0 100-10 5 5 0 000 10z" />
             </svg>
