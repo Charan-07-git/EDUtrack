@@ -15,10 +15,10 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([api('/api/me'), api('/api/teacher/my-subjects')]).then(([me, subjects]: [any, any[]]) => {
-      const dept = me.department || 'Computer Science';
+    refreshUser();
+    api('/api/teacher/my-subjects').then((subjects: any[]) => {
       const sems = Array.from(new Set(subjects.map((s: any) => s.semester))).sort((a: number, b: number) => a - b);
-      const deptList = sems.map((sem: number) => ({ department: dept, semester: sem }));
+      const deptList = sems.map((sem: number) => ({ department: 'Computer Science', semester: sem }));
       setSemesters(deptList);
       const saved = localStorage.getItem('edutrack_teacher_semester');
       if (saved && sems.includes(Number(saved))) {
