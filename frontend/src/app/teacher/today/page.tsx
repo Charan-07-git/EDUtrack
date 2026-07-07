@@ -3,9 +3,11 @@ import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 export default function Page() {
+  const { refreshUser } = useAuth();
   const [classes, setClasses] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [semesters, setSemesters] = useState<{ department: string; semester: number }[]>([]);
@@ -13,14 +15,16 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api('/api/timetable/departments').then((d: any[]) => {
-      setSemesters(d);
+    refreshUser();
+    api('/api/teacher/my-subjects').then((subjects: any[]) => {
+      const sems = Array.from(new Set(subjects.map((s: any) => s.semester))).sort((a: number, b: number) => a - b);
+      const deptList = sems.map((sem: number) => ({ department: 'Computer Science', semester: sem }));
+      setSemesters(deptList);
       const saved = localStorage.getItem('edutrack_teacher_semester');
-      if (saved && d.some((s: any) => s.semester === Number(saved))) {
+      if (saved && sems.includes(Number(saved))) {
         setSelectedSem(Number(saved));
-      } else if (d.length > 0) {
-        const fromUser = d.find((s: any) => s.semester);
-        setSelectedSem(fromUser?.semester || d[0].semester);
+      } else if (sems.length > 0) {
+        setSelectedSem(sems[0]);
       }
     });
   }, []);
