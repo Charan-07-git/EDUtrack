@@ -8,10 +8,15 @@ export default function Page() {
   const [rows, setRows] = useState<any[]>([]);
   const [sem, setSem] = useState('all');
   const [loaded, setLoaded] = useState(false);
+  const [sems, setSems] = useState<number[]>([]);
 
   useEffect(() => {
-    api('/api/low-attendance').then((d) => {
+    Promise.all([
+      api('/api/low-attendance'),
+      api('/api/teacher/my-subjects'),
+    ]).then(([d, subjects]) => {
       setRows(d);
+      setSems([...new Set(subjects.map((s: any) => s.semester))].sort((a, b) => a - b));
       setLoaded(true);
     });
   }, []);
@@ -40,7 +45,9 @@ export default function Page() {
             onChange={(e) => setSem(e.target.value)}
           >
             <option value="all">All Semesters</option>
-            <option value="5">Semester 5</option>
+            {sems.map((s) => (
+              <option key={s} value={s}>Semester {s}</option>
+            ))}
           </select>
 
           {!loaded ? (

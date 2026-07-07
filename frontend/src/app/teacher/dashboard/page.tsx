@@ -190,7 +190,7 @@ export default function Page() {
     if (!d) return '';
     if (tile.value === 'classes') return d.classes.length;
     if (tile.value === 'sessions') return d.classes.reduce((a: any, c: any) => a + c.sessions.length, 0);
-    if (tile.href === '/teacher/low-attendance') return 2;
+    if (tile.href === '/teacher/low-attendance') return d.lowAttendance?.length || 0;
     return '';
   }
 
