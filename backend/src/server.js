@@ -29,17 +29,20 @@ app.use(
 );
 app.use(express.json({ limit: "20mb" }));
 
-const dbUrl = process.env.DATABASE_URL;
-if (!dbUrl) {
-  console.error("FATAL: DATABASE_URL environment variable is not set");
-  process.exit(1);
-}
-const dbHost = new URL(dbUrl).host;
-console.log(`DATABASE_URL: set (connecting to ${dbHost})`);
-
 app.get("/health", (_, res) =>
   res.json({ ok: true, name: "EDUTrack API" })
 );
+
+const dbUrl = (process.env.DATABASE_URL || "").trim();
+if (!dbUrl) {
+  console.error("WARN: DATABASE_URL environment variable is not set - DB features will fail");
+} else {
+  let dbHost = "(unknown)";
+  try { dbHost = new URL(dbUrl).host; } catch (e) {
+    console.error("WARN: DATABASE_URL is invalid -", e.message);
+  }
+  console.log(`DATABASE_URL: set (connecting to ${dbHost})`);
+}
 
 async function init() {
   try {
