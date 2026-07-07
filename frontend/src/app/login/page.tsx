@@ -17,6 +17,7 @@ export default function LoginPage() {
   });
   const [photo, setPhoto] = useState("");
   const [remember, setRemember] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,6 +50,7 @@ export default function LoginPage() {
   function clearForm() {
     setForm({ email: "", password: "", name: "", department: "CSE", semester: 5, rollNumber: "" });
     setPhoto("");
+    setConfirmPassword("");
     setErr("");
     setShowPassword(false);
   }
@@ -72,6 +74,11 @@ export default function LoginPage() {
         else localStorage.removeItem('edutrack_remember_id');
         await login(id, form.password, role);
       } else {
+        if (form.password !== confirmPassword) {
+          setErr("Passwords do not match.");
+          setSubmitting(false);
+          return;
+        }
         const { department, semester, ...rest } = form;
         await signup(role === "STUDENT" ? { ...rest, role, photo } : { ...form, role, photo });
       }
@@ -234,6 +241,21 @@ export default function LoginPage() {
               </button>
             </div>
 
+            {/* CONFIRM PASSWORD (signup only) */}
+            {mode === "signup" && (
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  className="w-full px-4 py-3 pr-12 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all duration-200 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 hover:border-gray-300 dark:hover:border-slate-500"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="off"
+                />
+              </div>
+            )}
+
             {/* REMEMBER (login only) */}
             {mode === "login" && (
               <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400 cursor-pointer select-none">
@@ -250,7 +272,7 @@ export default function LoginPage() {
             {/* SUBMIT BUTTON */}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || (mode === "signup" && form.password !== confirmPassword)}
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {submitting ? (
