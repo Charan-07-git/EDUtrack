@@ -124,9 +124,9 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
                     <p className="text-sm font-bold text-blue-300 leading-tight">{user.facultyCode}</p>
                   )}
                   {user?.designation && (
-                    <p className="text-[11px] font-semibold text-amber-400/90 mt-0.5">{user.designation}</p>
+                    <p className="text-xs font-semibold text-amber-400/90 mt-0.5">{user.designation}</p>
                   )}
-                  <p className="text-xs text-white/70 mt-0.5 truncate">{user?.name || "Welcome"}</p>
+                  <p className="text-sm text-white/70 mt-0.5 truncate">{user?.name || "Welcome"}</p>
                 </>
               ) : (
                 <>
