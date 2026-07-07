@@ -71,6 +71,10 @@ r.get("/:sessionId/students", async (req, res) => {
 });
 
 r.post("/:classId/start", async (req, res) => {
+  const cls = await prisma.class.findUnique({ where: { id: req.params.classId } });
+  if (!cls || cls.teacherId !== req.user.id) {
+    return res.status(403).json({ message: "You can only start sessions for your own classes" });
+  }
   const s = await prisma.session.create({
     data: {
       classId: req.params.classId,
