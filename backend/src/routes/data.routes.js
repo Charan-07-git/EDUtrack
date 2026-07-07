@@ -121,7 +121,7 @@ async function computeLowAttendance(teacherId) {
   const students = await prisma.user.findMany({
     where: { role: "STUDENT", department: { in: departments }, semester: { in: semesters } },
   });
-  const low = [];
+  const low: any[] = [];
   for (const student of students) {
     for (const c of classes) {
       const total = c.sessions.length;
