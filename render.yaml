@@ -3,7 +3,7 @@ services:
     name: edutrack-api
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install && npx prisma generate
     startCommand: node src/server.js
     envVars:
       - key: DATABASE_URL
@@ -11,10 +11,6 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://edutrack.vercel.app
-      - key: CAMPUS_LAT
-        value: "41.8781"
-      - key: CAMPUS_LNG
-        value: "-87.6298"
+        value: https://edutrack-ten-inky.vercel.app
       - key: PORT
         value: "10000"
