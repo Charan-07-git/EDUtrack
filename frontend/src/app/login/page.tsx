@@ -54,7 +54,8 @@ export default function LoginPage() {
         if (!id) { setErr("Please enter your " + (role === "STUDENT" ? "roll number" : "email")); return; }
         await login(id, form.password, role);
       } else {
-        await signup({ ...form, role, photo });
+        const { department, semester, ...rest } = form;
+        await signup(role === "STUDENT" ? { ...rest, role, photo } : { ...form, role, photo });
       }
     } catch (x: any) {
       setErr(x.message);
@@ -155,28 +156,9 @@ export default function LoginPage() {
                   required
                 />
                 {role === "STUDENT" && (
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      placeholder="Department"
-                      className="flex-1 px-4 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all duration-200 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 hover:border-gray-300 dark:hover:border-slate-500"
-                      value={form.department}
-                      onChange={(e) =>
-                        setForm({ ...form, department: e.target.value })
-                      }
-                      required
-                    />
-                    <input
-                      type="number"
-                      placeholder="Semester"
-                      className="w-24 px-4 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all duration-200 bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 hover:border-gray-300 dark:hover:border-slate-500"
-                      value={form.semester}
-                      onChange={(e) =>
-                        setForm({ ...form, semester: parseInt(e.target.value) })
-                      }
-                      required
-                    />
-                  </div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center -mt-2">
+                    You'll set your department and semester after signup
+                  </p>
                 )}
               </>
             )}
