@@ -15,7 +15,7 @@ const YEAR_SEMESTER_MAP: Record<number, number[]> = {
 const DEPARTMENTS = ["Computer Science", "Electronics", "Mechanical", "Civil", "Electrical"];
 
 export default function StudentSetupPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
   const [year, setYear] = useState<number | null>(null);
   const [department, setDepartment] = useState("");
@@ -182,6 +182,7 @@ export default function StudentSetupPage() {
       console.log('[Setup] Done');
       setProcessing(false);
       setSaving(false);
+      await refreshUser();
       setStep("done");
       setTimeout(() => router.push("/student/dashboard"), 800);
     } catch (e: any) {

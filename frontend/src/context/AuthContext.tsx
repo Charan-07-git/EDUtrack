@@ -65,6 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function refreshUser() {
+    try {
+      const u = await api("/api/me");
+      setUser(u);
+      return u;
+    } catch { return null; }
+  }
+
   function logout() {
     localStorage.removeItem("edutrack_token");
     setUser(null);
@@ -72,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <C.Provider value={{ user, login, signup, logout }}>
+    <C.Provider value={{ user, login, signup, refreshUser, logout }}>
       {children}
     </C.Provider>
   );
