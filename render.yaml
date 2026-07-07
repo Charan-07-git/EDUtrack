@@ -12,5 +12,9 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: https://edutrack-ten-inky.vercel.app
+      - key: CAMPUS_LAT
+        value: "17.411"
+      - key: CAMPUS_LNG
+        value: "78.529"
       - key: PORT
         value: "10000"
