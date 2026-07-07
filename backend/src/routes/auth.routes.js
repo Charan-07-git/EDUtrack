@@ -6,6 +6,10 @@ import { auth } from "../middleware/auth.js";
 
 const r = Router();
 
+r.get("/test", (req, res) => {
+  res.json({ ok: true, prisma: typeof prisma, jwt: !!process.env.JWT_SECRET, dbUrl: !!(process.env.DATABASE_URL || "").trim() });
+});
+
 function sign(user) {
   return jwt.sign(
     { id: user.id, role: user.role, email: user.email, rollNumber: user.rollNumber, name: user.name },
