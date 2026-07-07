@@ -102,4 +102,15 @@ r.post("/upload-photo", auth, async (req, res) => {
   res.json({ user });
 });
 
+r.delete("/students", async (req, res) => {
+  if (req.query.confirm !== "yes") {
+    return res.status(400).json({ message: "Pass ?confirm=yes to confirm" });
+  }
+  await prisma.attendance.deleteMany({ where: { student: { role: "STUDENT" } } });
+  await prisma.goal.deleteMany({});
+  await prisma.announcement.deleteMany({ where: { teacher: { role: "TEACHER" } } });
+  const deleted = await prisma.user.deleteMany({ where: { role: "STUDENT" } });
+  res.json({ message: `Deleted ${deleted.count} student accounts` });
+});
+
 export default r;

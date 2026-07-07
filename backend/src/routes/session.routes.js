@@ -157,14 +157,12 @@ r.post("/mark", async (req, res) => {
     return res.status(400).json({ message: "QR expired or invalid" });
   }
 
-  if (!lat || !lng) {
-    return res.status(400).json({ message: "Location is required to mark attendance" });
-  }
-  const refLat = s.teacherLat ?? Number(process.env.CAMPUS_LAT);
-  const refLng = s.teacherLng ?? Number(process.env.CAMPUS_LNG);
-  const d = distanceMeters(Number(lat), Number(lng), refLat, refLng);
-  if (d > 100) {
-    return res.status(400).json({ message: "You are outside the 100m attendance radius" });
+  let locationVerified = false;
+  if (lat && lng) {
+    const refLat = s.teacherLat ?? Number(process.env.CAMPUS_LAT);
+    const refLng = s.teacherLng ?? Number(process.env.CAMPUS_LNG);
+    const d = distanceMeters(Number(lat), Number(lng), refLat, refLng);
+    locationVerified = d <= 100;
   }
 
   if (!faceVerified) {
@@ -187,27 +185,31 @@ r.post("/mark", async (req, res) => {
     },
   });
 
-  if (faceDescriptor && Array.isArray(faceDescriptor) && faceDescriptor.length === 128) {
-    const stored = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: { faceDescriptor: true, photoUrl: true },
-    });
-    let finalDescriptor = faceDescriptor;
-    if (stored?.faceDescriptor && Array.isArray(stored.faceDescriptor) && stored.faceDescriptor.length === 128) {
-      finalDescriptor = faceDescriptor.map((v, i) => (v + stored.faceDescriptor[i]) / 2);
+  try {
+    if (faceDescriptor && Array.isArray(faceDescriptor) && faceDescriptor.length === 128) {
+      const stored = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { faceDescriptor: true, photoUrl: true },
+      });
+      let finalDescriptor = faceDescriptor;
+      if (stored?.faceDescriptor && Array.isArray(stored.faceDescriptor) && stored.faceDescriptor.length === 128) {
+        finalDescriptor = faceDescriptor.map((v, i) => (v + stored.faceDescriptor[i]) / 2);
+      }
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: {
+          faceDescriptor: finalDescriptor,
+          ...(facePhoto && !stored?.photoUrl ? { photoUrl: facePhoto } : {}),
+        },
+      });
+    } else if (facePhoto) {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { photoUrl: facePhoto },
+      });
     }
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: {
-        faceDescriptor: finalDescriptor,
-        ...(facePhoto && !stored?.photoUrl ? { photoUrl: facePhoto } : {}),
-      },
-    });
-  } else if (facePhoto) {
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: { photoUrl: facePhoto },
-    });
+  } catch (e) {
+    console.error("Face descriptor update error:", e);
   }
 
   req.app.get("io").to(sessionId).emit("attendance:count");
