@@ -3,7 +3,7 @@ services:
     name: edutrack-api
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install
     startCommand: node src/server.js
     envVars:
       - key: DATABASE_URL
