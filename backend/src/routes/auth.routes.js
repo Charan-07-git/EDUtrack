@@ -61,7 +61,10 @@ r.post("/signup", async (req, res) => {
     res.json({ token: sign(user), user });
   } catch (err) {
     console.error("Signup error:", err?.message || err);
-    res.status(500).json({ message: "Server error, please try again" });
+    const msg = err?.message?.includes("Can't reach database server")
+      ? "Database is unavailable. Please contact the administrator."
+      : "Server error, please try again";
+    res.status(500).json({ message: msg });
   }
 });
 
@@ -87,7 +90,10 @@ r.post("/login", async (req, res) => {
     res.json({ token: sign(user), user });
   } catch (err) {
     console.error("Login error:", err?.message || err);
-    res.status(500).json({ message: "Server error, please try again" });
+    const msg = err?.message?.includes("Can't reach database server")
+      ? "Database is unavailable. Please contact the administrator."
+      : "Server error, please try again";
+    res.status(500).json({ message: msg });
   }
 });
 

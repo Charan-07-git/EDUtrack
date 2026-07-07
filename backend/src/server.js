@@ -29,12 +29,29 @@ app.use(
 );
 app.use(express.json({ limit: "20mb" }));
 
+const dbUrl = process.env.DATABASE_URL;
+if (!dbUrl) {
+  console.error("FATAL: DATABASE_URL environment variable is not set");
+  process.exit(1);
+}
+const dbHost = new URL(dbUrl).host;
+console.log(`DATABASE_URL: set (connecting to ${dbHost})`);
+
 app.get("/health", (_, res) =>
   res.json({ ok: true, name: "EDUTrack API" })
 );
 
 async function init() {
   try {
+    const { prisma } = await import("./db.js");
+    try {
+      await prisma.$connect();
+      console.log("Database: connected successfully");
+    } catch (dbErr) {
+      console.error("Database: connection failed -", dbErr?.message || dbErr);
+      console.error("Database: the Supabase project may be paused. Resume it at https://supabase.com/dashboard");
+    }
+
     const authRoutes = (await import("./routes/auth.routes.js")).default;
     const dataRoutes = (await import("./routes/data.routes.js")).default;
     const sessionRoutes = (await import("./routes/session.routes.js")).default;
@@ -55,8 +72,11 @@ async function init() {
         io.to(sessionId).emit("attendance:count");
       });
     });
+
+    console.log(`Routes: ${6} registered`);
   } catch (e) {
     console.error("Route init error:", e?.message || e);
+    console.error(e?.stack || "");
   }
 }
 
@@ -64,7 +84,11 @@ init();
 
 app.use((err, _req, res, _next) => {
   console.error("Request Error:", err?.message || err);
-  res.status(500).json({ message: "Internal server error" });
+  console.error(err?.stack || "");
+  const msg = err?.message?.includes("Can't reach database server")
+    ? "Database is unavailable. The Supabase project may be paused."
+    : "Internal server error";
+  res.status(500).json({ message: msg });
 });
 
 server.listen(process.env.PORT || 4000, () =>
