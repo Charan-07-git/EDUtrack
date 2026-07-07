@@ -10,7 +10,7 @@ type Step = 'scan' | 'camera' | 'captured' | 'validating' | 'confirm' | 'saving'
 
 const CAMPUS_LAT = Number(process.env.NEXT_PUBLIC_CAMPUS_LAT) || 17.411;
 const CAMPUS_LNG = Number(process.env.NEXT_PUBLIC_CAMPUS_LNG) || 78.529;
-const MAX_DISTANCE = 500;
+const MAX_DISTANCE = 3000;
 
 function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number) {
   const R = 6371000;

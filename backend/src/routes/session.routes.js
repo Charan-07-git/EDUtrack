@@ -172,7 +172,7 @@ r.post("/mark", async (req, res) => {
     const refLat = s.teacherLat ?? Number(process.env.CAMPUS_LAT);
     const refLng = s.teacherLng ?? Number(process.env.CAMPUS_LNG);
     const d = distanceMeters(Number(lat), Number(lng), refLat, refLng);
-    locationVerified = d <= 100;
+    locationVerified = d <= 3000;
   }
 
   const student = await prisma.user.findUnique({
