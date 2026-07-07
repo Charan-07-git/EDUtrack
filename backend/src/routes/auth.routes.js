@@ -6,10 +6,6 @@ import { auth } from "../middleware/auth.js";
 
 const r = Router();
 
-r.get("/test", (req, res) => {
-  res.json({ ok: true, prisma: typeof prisma, jwt: !!process.env.JWT_SECRET, dbUrl: !!(process.env.DATABASE_URL || "").trim() });
-});
-
 function sign(user) {
   return jwt.sign(
     { id: user.id, role: user.role, email: user.email, rollNumber: user.rollNumber, name: user.name },
@@ -73,24 +69,29 @@ r.post("/signup", async (req, res) => {
 });
 
 r.post("/login", async (req, res) => {
-  const { email, password, role } = req.body;
+  try {
+    const { email, password, role } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email/Roll number and password are required" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email/Roll number and password are required" });
+    }
+
+    let user;
+    if (role === "STUDENT") {
+      user = await prisma.user.findFirst({ where: { rollNumber: email } });
+    } else {
+      user = await prisma.user.findUnique({ where: { email } });
+    }
+
+    if (!user || user.role !== role || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    res.json({ token: sign(user), user });
+  } catch (err) {
+    console.error("Login error:", err?.message || err);
+    res.status(500).json({ message: "Server error, please try again" });
   }
-
-  let user;
-  if (role === "STUDENT") {
-    user = await prisma.user.findFirst({ where: { rollNumber: email } });
-  } else {
-    user = await prisma.user.findUnique({ where: { email } });
-  }
-
-  if (!user || user.role !== role || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-
-  res.json({ token: sign(user), user });
 });
 
 r.post("/upload-photo", auth, async (req, res) => {

@@ -103,9 +103,9 @@ app.use((err, _req, res, _next) => {
   console.error("Request Error:", err?.message || err);
   console.error(err?.stack || "");
   const msg = err?.message?.includes("Can't reach database server")
-    ? "Database: Supabase project may be paused"
-    : `ERR: ${err?.message || err || "NO_ERROR_OBJECT"}`;
-  res.status(500).json({ message: msg, ts: Date.now() });
+    ? "Database is unavailable. The Supabase project may be paused."
+    : "Internal server error";
+  res.status(500).json({ message: msg });
 });
 
 server.listen(process.env.PORT || 4000, () =>
