@@ -450,11 +450,21 @@ r.get("/leaderboard", async (req, res) => {
   res.json(ranked);
 });
 
-r.get("/goals", async (req, res) =>
-  res.json([
-    { subject: "Database Systems", percent: 62, classesNeeded: 7 },
-    { subject: "Operating Systems", percent: 71, classesNeeded: 3 },
-  ])
-);
+r.get("/goals", async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user || !user.department || !user.semester) return res.json([]);
+  const classes = await prisma.class.findMany({
+    where: { department: user.department, semester: user.semester },
+    include: { sessions: { include: { attendances: { where: { studentId: req.user.id } } } } },
+  });
+  const goals = classes.map((c) => {
+    const total = c.sessions.length;
+    const attended = c.sessions.reduce((sum, s) => sum + s.attendances.length, 0);
+    const percent = total > 0 ? Math.round((attended / total) * 100) : 0;
+    const classesNeeded = total > 0 ? Math.max(0, Math.ceil(0.75 * total - attended)) : 0;
+    return { subject: c.subject, percent, classesNeeded, total, attended };
+  });
+  res.json(goals);
+});
 
 export default r;
