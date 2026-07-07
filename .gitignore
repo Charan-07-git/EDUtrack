@@ -9,3 +9,5 @@ dist/
 
 .vercel
 .env*
+test-render.ps1
+backend/test-*.mjs
