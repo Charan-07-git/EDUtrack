@@ -90,9 +90,10 @@ r.post("/login", async (req, res) => {
     res.json({ token: sign(user), user });
   } catch (err) {
     console.error("Login error:", err?.message || err);
+    console.error("Login stack:", err?.stack || "");
     const msg = err?.message?.includes("Can't reach database server")
       ? "Database is unavailable. Please contact the administrator."
-      : "Server error, please try again";
+      : `Server error: ${err?.message || "Unknown"}`;
     res.status(500).json({ message: msg });
   }
 });

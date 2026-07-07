@@ -32,6 +32,20 @@ app.use(express.json({ limit: "20mb" }));
 app.get("/health", (_, res) =>
   res.json({ ok: true, name: "EDUTrack API" })
 );
+app.get("/health/db", async (_, res) => {
+  try {
+    const { prisma } = await import("./db.js");
+    await prisma.$connect();
+    const userCount = await prisma.user.count();
+    await prisma.$disconnect();
+    res.json({ ok: true, db: "connected", users: userCount });
+  } catch (e) {
+    const dbUrl = (process.env.DATABASE_URL || "").trim();
+    let host = "(not set)";
+    try { host = dbUrl ? new URL(dbUrl).host : "(not set)"; } catch (_) { host = "(invalid URL)"; }
+    res.json({ ok: false, db: "error", host, error: e?.message || String(e) });
+  }
+});
 
 const dbUrl = (process.env.DATABASE_URL || "").trim();
 if (!dbUrl) {
