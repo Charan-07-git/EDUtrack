@@ -50,8 +50,10 @@ r.get("/:sessionId/students", async (req, res) => {
   const students = await prisma.user.findMany({
     where: {
       role: "STUDENT",
-      department: session.class.department,
-      semester: session.class.semester,
+      OR: [
+        { department: session.class.department, semester: session.class.semester },
+        { attendances: { some: { sessionId: req.params.sessionId } } },
+      ],
     },
     select: { id: true, name: true, rollNumber: true, department: true, semester: true },
     orderBy: { name: "asc" },
