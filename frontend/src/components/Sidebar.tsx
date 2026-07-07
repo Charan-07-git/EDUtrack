@@ -35,31 +35,14 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
   const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
-  const [teacherSemesters, setTeacherSemesters] = useState<number[]>([]);
   const [teacherSem, setTeacherSem] = useState<number | null>(null);
-  const [savingSem, setSavingSem] = useState(false);
 
   useEffect(() => {
     if (role === "teacher") {
-      api('/api/timetable/departments').then((d: any[]) => {
-        const sems = Array.from(new Set(d.map((s: any) => s.semester))).sort((a, b) => a - b);
-        setTeacherSemesters(sems);
-        const saved = localStorage.getItem('edutrack_teacher_semester');
-        if (saved && sems.includes(Number(saved))) {
-          setTeacherSem(Number(saved));
-        } else if (sems.length > 0) {
-          setTeacherSem(sems[0]);
-        }
-      });
+      const saved = localStorage.getItem('edutrack_teacher_semester');
+      if (saved) setTeacherSem(Number(saved));
     }
   }, [role]);
-
-  function handleSidebarSemesterChange(sem: number) {
-    setTeacherSem(sem);
-    localStorage.setItem('edutrack_teacher_semester', String(sem));
-    setSavingSem(true);
-    api('/api/me', { method: 'PUT', body: JSON.stringify({ semester: sem }) }).finally(() => setSavingSem(false));
-  }
 
   const items = role === "teacher" ? teacherItems : studentItems;
 
@@ -170,27 +153,11 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
                 {role === "teacher" && user?.facultyCode && (
                   <span className="text-[10px] text-blue-300/50">[{user.facultyCode}]</span>
                 )}
-                {role === "teacher" && teacherSemesters.length > 0 ? (
-                  <div className="relative flex-1">
-                    <select
-                      value={teacherSem ?? ''}
-                      onChange={(e) => handleSidebarSemesterChange(Number(e.target.value))}
-                      className="appearance-none bg-white/10 text-[10px] text-blue-200 rounded-lg px-1.5 py-0.5 pr-5 border border-white/10 w-full cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-400"
-                    >
-                      {teacherSemesters.map((sem) => (
-                        <option key={sem} value={sem} className="text-slate-900">Sem {sem}</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
-                      <svg className="w-2.5 h-2.5 text-blue-300/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                ) : role !== "teacher" ? (
+                {role === "teacher" && teacherSem ? (
+                  <span className="text-[10px] text-blue-300/70">Sem {teacherSem}</span>
+                ) : (
                   <p className="text-[10px] text-blue-300/70 truncate">{user?.department + " • Sem " + user?.semester}</p>
-                ) : null}
-                {savingSem && <span className="text-[10px] text-blue-300/50">...</span>}
+                )}
               </div>
             </div>
           </div>

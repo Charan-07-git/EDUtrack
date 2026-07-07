@@ -55,7 +55,7 @@ export default function LoginPage() {
         await login(id, form.password, role);
       } else {
         const { department, semester, ...rest } = form;
-        await signup(role === "STUDENT" ? { ...rest, role, photo } : { ...form, role, photo });
+        await signup({ ...rest, role, photo });
       }
     } catch (x: any) {
       setErr(x.message);
@@ -239,12 +239,6 @@ export default function LoginPage() {
 
           {/* LINKS */}
           <div className="text-center mt-6 text-sm space-y-2">
-            {mode === "login" && (
-              <p className="text-blue-500 cursor-pointer hover:text-blue-700 hover:underline transition-all">
-                Forgot password?
-              </p>
-            )}
-
             <p className="text-gray-600 dark:text-slate-400">
               {mode === "login"
                 ? "Don't have an account? "

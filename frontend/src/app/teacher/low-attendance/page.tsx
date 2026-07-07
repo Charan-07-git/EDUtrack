@@ -14,7 +14,7 @@ export default function Page() {
     Promise.all([
       api('/api/low-attendance'),
       api('/api/teacher/my-subjects'),
-    ]).then(([d, subjects]) => {
+    ]).then(([d, subjects]: [any, any[]]) => {
       setRows(d);
       setSems([...new Set(subjects.map((s: any) => s.semester))].sort((a, b) => a - b));
       setLoaded(true);

@@ -57,7 +57,7 @@ export default function Page() {
       api('/api/timetable/available-subjects'),
       api('/api/teacher/my-subjects'),
       api('/api/me'),
-    ]).then(([all, mine, me]) => {
+    ]).then(([all, mine, me]: [any[], any[], any]) => {
       setAllSubjects(all);
       setMySubjects(mine);
       if (me.facultyCode) setFacultyCode(me.facultyCode);
