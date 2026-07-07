@@ -67,11 +67,11 @@ export default function Page() {
   const [attPercent, setAttPercent] = useState<number | null>(null);
 
   useEffect(() => {
-    const year = localStorage.getItem("edutrack_year");
-    const sem = localStorage.getItem("edutrack_semester");
-    const dept = localStorage.getItem("edutrack_department") || "CSE";
-    setSetupLabel(year ? `Year ${year} | Semester ${sem} | ${dept}` : 'Set up your academic year');
-    if (!year || !sem || !localStorage.getItem("edutrack_department")) {
+    const year = user?.year;
+    const sem = user?.semester;
+    const dept = user?.department || "CSE";
+    setSetupLabel(year && sem ? `Year ${year} | Semester ${sem} | ${dept}` : 'Set up your academic year');
+    if (!year || !sem || !user?.department) {
       router.replace("/student/setup");
       return;
     }

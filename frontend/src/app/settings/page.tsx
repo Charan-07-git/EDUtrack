@@ -46,9 +46,9 @@ export default function Page() {
     if (user) {
       setName(user.name || '');
       setDepartment(user.department || '');
-      setSemester(user.semester || Number(localStorage.getItem("edutrack_semester")) || 5);
-      setYear(user.year || Number(localStorage.getItem("edutrack_year")) || 3);
-      setSubject(user.selectedSubject || localStorage.getItem("edutrack_subject") || '');
+      setSemester(user.semester || 5);
+      setYear(user.year || 3);
+      setSubject(user.selectedSubject || '');
       api("/api/timetable/semesters").then((list: any[]) => {
         const sem = list.find((s: any) => s.semester === (user.semester || Number(localStorage.getItem("edutrack_semester"))));
         if (sem) setSubjects(sem.subjects);
@@ -180,10 +180,7 @@ export default function Page() {
               <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" />
             </div>
             {user?.role === 'STUDENT' && (
-              <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 block">Semester</label>
-                <input type="number" value={semester} onChange={(e) => setSemester(parseInt(e.target.value))} className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" />
-              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Set your year and semester in the Academic Setup section below</p>
             )}
             <button type="submit" disabled={saving} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50">
               Save Changes
