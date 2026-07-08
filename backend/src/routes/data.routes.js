@@ -127,7 +127,7 @@ r.get("/student/dashboard", async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
   });
-  const where: any[] = [];
+  const where = [];
   if (user.department && user.semester) {
     where.push({ department: user.department, semester: user.semester });
   }
@@ -510,7 +510,7 @@ r.get("/leaderboard", async (req, res) => {
 r.get("/goals", async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
   if (!user) return res.json([]);
-  const where: any[] = [];
+  const where = [];
   if (user.department && user.semester) {
     where.push({ department: user.department, semester: user.semester });
   }
