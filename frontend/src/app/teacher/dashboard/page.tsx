@@ -131,7 +131,7 @@ export default function Page() {
                 {greeting}, {user?.name?.split(' ')[0] || 'Teacher'}!
               </h2>
               <p className="text-slate-300 text-sm mt-1">
-                {user?.designation || 'Faculty'} &middot; {user?.department || 'Department'}
+                {user?.designation || 'Faculty'} &middot; {user?.name} &middot; {user?.department || 'Department'}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 ml-4">
