@@ -37,6 +37,7 @@ model User {
   photoUrl       String?
   faceDescriptor Json?
   faceRegistered Boolean  @default(false)
+  facePhotos     Json?
   createdAt      DateTime      @default(now())
 
   teacherClasses Class[]       @relation("TeacherClasses")

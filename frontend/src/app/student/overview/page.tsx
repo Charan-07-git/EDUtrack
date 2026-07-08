@@ -4,12 +4,11 @@ import Shell from '@/components/Shell';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import Link from 'next/link';
 
 export default function Page() {
   const { user } = useAuth();
   const [classes, setClasses] = useState<any[]>([]);
-  const [attendance, setAttendance] = useState<any>({});
+  const [attendance, setAttendance] = useState<Record<string, { total: number; attended: number; percent: number }>>({});
   const [attendedDates, setAttendedDates] = useState<number[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -127,23 +126,55 @@ export default function Page() {
         )}
 
         {/* Individual Subject Attendance */}
-        <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 shadow-lg" style={{ animation: 'fadeUp 0.4s ease-out 0.2s both' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white">Individual Subject Attendance</h3>
-              <p className="text-white/70 text-sm mt-1">View attendance breakdown for each subject</p>
+        {classes.length > 0 && (
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Subject-wise Attendance</h3>
+            <div className="space-y-3">
+              {classes.map((c, i) => {
+                const a = attendance[c.id];
+                if (!a || a.total === 0) return null;
+                const pct = a.percent;
+                const isGood = pct >= 75;
+                return (
+                  <div
+                    key={c.id}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-md border border-slate-100 dark:border-slate-700"
+                    style={{ animation: `fadeUp 0.4s ease-out ${i * 0.06}s both` }}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{c.subject}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{c.code}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-lg font-extrabold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                          {pct}%
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{a.attended}/{a.total} classes</p>
+                      </div>
+                    </div>
+                    <div className="relative h-4 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out ${
+                          isGood
+                            ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                            : 'bg-gradient-to-r from-red-400 to-red-500'
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <Link
-              href="/student/subject-attendance"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl text-white font-semibold text-sm transition-all group"
-            >
-              View Details
-              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M3 12h18" />
-              </svg>
-            </Link>
           </div>
-        </div>
+        )}
+
+        {classes.length === 0 && (
+          <div className="card text-center py-12">
+            <p className="text-slate-400 dark:text-slate-500 text-sm">No attendance data available yet. Start attending classes to see your overview.</p>
+          </div>
+        )}
       </div>
 
       <style>{`

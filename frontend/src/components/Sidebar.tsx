@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useDarkMode } from "@/context/DarkModeContext";
 import { useState } from "react";
 
 const teacherItems = [
@@ -28,7 +27,6 @@ const studentItems = [
 export default function Sidebar({ role }: { role: "teacher" | "student" }) {
   const p = usePathname();
   const { user, logout } = useAuth();
-  const { dark, toggle } = useDarkMode();
   const [uploading, setUploading] = useState(false);
   const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
@@ -199,12 +197,6 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
 
         {/* Bottom */}
         <div className="mt-auto space-y-1 pt-2 border-t border-white/5">
-          <button onClick={toggle} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-200 group">
-            <svg className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              {dark ? <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />}
-            </svg>
-            {dark ? "Light Mode" : "Dark Mode"}
-          </button>
           <button onClick={() => { logout(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
             <svg className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m0 0H7m6 4a5 5 0 100-10 5 5 0 000 10z" />

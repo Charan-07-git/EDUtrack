@@ -102,6 +102,19 @@ r.put("/me/face-descriptor", async (req, res) => {
   res.json({ success: true, stored: true, user });
 });
 
+r.put("/me/face-photos", async (req, res) => {
+  const { facePhotos } = req.body;
+  if (!facePhotos || !Array.isArray(facePhotos) || facePhotos.length !== 6) {
+    return res.status(400).json({ message: "facePhotos must be an array of 6 photo URLs" });
+  }
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { facePhotos },
+    select: { id: true, name: true, facePhotos: true, faceRegistered: true },
+  });
+  res.json({ success: true, user });
+});
+
 r.get("/teacher/dashboard", async (req, res) => {
   const classes = await prisma.class.findMany({
     where: { teacherId: req.user.id },
@@ -114,12 +127,13 @@ r.get("/student/dashboard", async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
   });
-  if (!user.department || !user.semester) return res.json({ classes: [] });
+  const where: any[] = [];
+  if (user.department && user.semester) {
+    where.push({ department: user.department, semester: user.semester });
+  }
+  where.push({ sessions: { some: { attendances: { some: { studentId: req.user.id } } } } });
   const classes = await prisma.class.findMany({
-    where: {
-      department: user.department,
-      semester: user.semester,
-    },
+    where: { OR: where },
     include: {
       timetable: true,
       sessions: { include: { attendances: true } },
@@ -495,9 +509,14 @@ r.get("/leaderboard", async (req, res) => {
 
 r.get("/goals", async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user || !user.department || !user.semester) return res.json([]);
+  if (!user) return res.json([]);
+  const where: any[] = [];
+  if (user.department && user.semester) {
+    where.push({ department: user.department, semester: user.semester });
+  }
+  where.push({ sessions: { some: { attendances: { some: { studentId: req.user.id } } } } });
   const classes = await prisma.class.findMany({
-    where: { department: user.department, semester: user.semester },
+    where: { OR: where },
     include: { sessions: { include: { attendances: { where: { studentId: req.user.id } } } } },
   });
   const goals = classes.map((c) => {

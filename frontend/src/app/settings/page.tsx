@@ -2,7 +2,7 @@
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -37,6 +37,13 @@ export default function Page() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [facePhotos, setFacePhotos] = useState<string[]>([]);
+  const [capturing, setCapturing] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [savingFacePhotos, setSavingFacePhotos] = useState(false);
+  const [faceMsg, setFaceMsg] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -199,6 +206,73 @@ export default function Page() {
       setProfileMsg(err.message || 'Failed to delete account');
       setDeleting(false);
     }
+  }
+
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      setCameraStream(stream);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch {
+      setFaceMsg('Could not access camera. Please allow camera permissions.');
+    }
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      setCameraStream(null);
+    }
+  }, [cameraStream]);
+
+  useEffect(() => {
+    return () => { if (cameraStream) cameraStream.getTracks().forEach(t => t.stop()); };
+  }, [cameraStream]);
+
+  function capturePhoto() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setFacePhotos(prev => [...prev, dataUrl]);
+  }
+
+  function retakePhoto(index: number) {
+    setFacePhotos(prev => prev.filter((_, i) => i !== index));
+  }
+
+  async function saveFacePhotos() {
+    if (facePhotos.length !== 6) return;
+    setSavingFacePhotos(true);
+    setFaceMsg('');
+    try {
+      const token = localStorage.getItem("edutrack_token");
+      const uploaded: string[] = [];
+      for (let i = 0; i < facePhotos.length; i++) {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-photo`, {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ photoData: facePhotos[i], mimeType: 'image/jpeg' }),
+        });
+        if (!res.ok) throw new Error('Failed to upload photo ' + (i + 1));
+        const d = await res.json();
+        uploaded.push(d.user.photoUrl);
+      }
+      await api('/api/me/face-photos', {
+        method: 'PUT',
+        body: JSON.stringify({ facePhotos: uploaded }),
+      });
+      setFaceMsg('All 6 reference photos saved successfully!');
+      setFacePhotos([]);
+      stopCamera();
+    } catch (err: any) {
+      setFaceMsg(err.message || 'Failed to save face photos');
+    }
+    setSavingFacePhotos(false);
   }
 
   function MsgBanner({ msg }: { msg: string }) {
@@ -373,8 +447,82 @@ export default function Page() {
           </div>
         </div>
 
+        {/* Face Registration (Student only) */}
+        {user?.role === 'STUDENT' && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.25s both' }}>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Capture 6 Photos for Reference</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
+              Capture 6 reference photos for face verification during attendance.
+            </p>
+            {facePhotos.length < 6 && !cameraStream && (
+              <button
+                onClick={() => { setCapturing(true); startCamera(); }}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm"
+              >
+                Open Camera
+              </button>
+            )}
+            {cameraStream && (
+              <div className="space-y-4">
+                <div className="relative rounded-2xl overflow-hidden bg-black">
+                  <video ref={videoRef} autoPlay playsInline className="w-full max-w-sm mx-auto" />
+                </div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  Photo {facePhotos.length + 1} of 6
+                </p>
+                {facePhotos.length < 6 && (
+                  <button
+                    onClick={capturePhoto}
+                    className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all text-sm"
+                  >
+                    Capture Photo {facePhotos.length + 1}
+                  </button>
+                )}
+              </div>
+            )}
+            {facePhotos.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Captured Photos:</p>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {facePhotos.map((photo, i) => (
+                    <div key={i} className="relative group">
+                      <img src={photo} alt={`Face ${i + 1}`} className="w-full h-24 rounded-xl object-cover ring-2 ring-blue-400/30" />
+                      <button
+                        onClick={() => retakePhoto(i)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                      <p className="text-[10px] text-center mt-1 text-slate-500">Photo {i + 1}</p>
+                    </div>
+                  ))}
+                </div>
+                {facePhotos.length === 6 && (
+                  <div className="space-y-3">
+                    <MsgBanner msg={faceMsg} />
+                    <button
+                      onClick={saveFacePhotos}
+                      disabled={savingFacePhotos}
+                      className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50 text-sm"
+                    >
+                      {savingFacePhotos ? 'Saving...' : 'Save All 6 Photos'}
+                    </button>
+                    <button
+                      onClick={() => { stopCamera(); setCapturing(false); }}
+                      className="ml-2 bg-white/10 text-slate-600 dark:text-slate-400 px-5 py-2.5 rounded-xl font-semibold hover:bg-white/20 transition-all text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <canvas ref={canvasRef} className="hidden" />
+          </div>
+        )}
+
         {/* Delete Account */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-red-200 dark:border-red-900/50" style={{ animation: 'fadeUp 0.4s ease-out 0.25s both' }}>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-red-200 dark:border-red-900/50" style={{ animation: 'fadeUp 0.4s ease-out 0.3s both' }}>
           <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">Delete Account</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
           {deleting ? (
