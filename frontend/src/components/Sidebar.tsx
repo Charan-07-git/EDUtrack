@@ -24,7 +24,7 @@ const studentItems = [
   { label: "Goals", href: "/student/goals", color: "from-amber-500 to-orange-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
 ];
 
-export default function Sidebar({ role }: { role: "teacher" | "student" }) {
+export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "teacher" | "student"; sidebarOpen: boolean; onCloseSidebar: () => void }) {
   const p = usePathname();
   const { user, logout } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -94,7 +94,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
   return (
     <>
       {/* Sidebar */}
-      <aside className="fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 overflow-y-auto scrollbar-hide">
+      <aside className={`fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 overflow-y-auto scrollbar-hide transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         {/* Logo */}
         <Link href={`/${role}/dashboard`} className="flex items-center gap-2 mb-3">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -143,6 +143,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
         <nav className="mt-3 space-y-0.5 flex-1">
           <Link
             href={`/${role}/dashboard`}
+            onClick={onCloseSidebar}
             className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
               p === `/${role}/dashboard`
                 ? "bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg shadow-blue-500/20"
@@ -162,6 +163,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onCloseSidebar}
                 className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   active
                     ? "bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg shadow-blue-500/20"
@@ -183,6 +185,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
           {/* Settings */}
           <Link
             href="/settings"
+            onClick={onCloseSidebar}
             className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
               p === "/settings"
                 ? "bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg shadow-blue-500/20"
@@ -198,7 +201,7 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
 
         {/* Bottom */}
         <div className="mt-auto space-y-1 pt-2 border-t border-white/5">
-          <button onClick={() => { logout(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
+          <button onClick={() => { logout(); onCloseSidebar(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
             <svg className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m0 0H7m6 4a5 5 0 100-10 5 5 0 000 10z" />
             </svg>
@@ -206,6 +209,12 @@ export default function Sidebar({ role }: { role: "teacher" | "student" }) {
           </button>
         </div>
       </aside>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={onCloseSidebar} />
+      )}
+
       {/* Photo Modal */}
       {photoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(false)}>

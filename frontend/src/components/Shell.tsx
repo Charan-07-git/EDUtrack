@@ -34,6 +34,7 @@ export default function Shell({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchUnread = useCallback(async () => {
@@ -164,11 +165,22 @@ export default function Shell({
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
-      <Sidebar role={role} />
+      <Sidebar role={role} sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />
       <section className="lg:ml-72 min-h-screen p-4 pt-20 lg:p-8 lg:pt-8">
         {header ?? (
           <div className="flex items-center justify-between mb-4 lg:mb-6">
-            <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300"
+                aria-label="Open sidebar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              </button>
+              <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h1>
+            </div>
             <div className="flex items-center gap-2">
               <button onClick={toggle} className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300" title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
                 {dark ? (
