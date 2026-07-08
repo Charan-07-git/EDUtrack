@@ -1,143 +1,183 @@
+// ============================================================
+// EDUTrack Database Schema (Prisma)
+// PostgreSQL database for the attendance management system.
+// ============================================================
+
+// Prisma client generator configuration
 generator client {
   provider        = "prisma-client-js"
   binaryTargets   = ["native", "debian-openssl-3.0.x", "windows"]
 }
 
+// PostgreSQL datasource (connection URL from environment)
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// --------------------------------------------------
+// User role: STUDENT or TEACHER
+// --------------------------------------------------
 enum Role {
   STUDENT
   TEACHER
 }
 
+// --------------------------------------------------
+// Session lifecycle status
+// --------------------------------------------------
 enum SessionStatus {
-  SCHEDULED
-  ACTIVE
-  ENDED
-  QR_ACTIVE
-  QR_EXPIRED
+  SCHEDULED // Session planned but not started
+  ACTIVE    // Session ongoing (teacher started it)
+  ENDED     // Session finished
+  QR_ACTIVE // QR code displayed, students can scan to mark attendance
+  QR_EXPIRED // QR code time limit elapsed
 }
 
+// --------------------------------------------------
+// User – Stores all user accounts (students & teachers)
+// --------------------------------------------------
 model User {
-  id             String        @id @default(cuid())
-  name           String
-  email          String        @unique
-  password       String
-  role           Role
-  department     String?
-  semester       Int?
-  year           Int?
-  selectedSubject String?
-  designation    String?
-  facultyCode    String?
-  rollNumber     String?
-  photoUrl       String?
-  faceDescriptor Json?
-  faceRegistered Boolean  @default(false)
-  facePhotos     Json?
-  createdAt      DateTime      @default(now())
+  id             String    @id @default(cuid())   // Unique user ID (auto-generated)
+  name           String                          // Full name of the user
+  email          String    @unique                // Email (teachers) or roll number (students) – unique identifier
+  password       String                          // Hashed password (bcrypt)
+  role           Role                            // STUDENT or TEACHER
+  department     String?                         // Department name (CSE, ECE, etc.)
+  semester       Int?                            // Current semester number (students)
+  year           Int?                            // Academic year derived from semester
+  selectedSubject String?                        // Teacher's selected subjects as JSON string array
+  designation    String?                         // Teacher title (Dr., Prof., etc.)
+  facultyCode    String?                         // Teacher's faculty code from timetable data
+  rollNumber     String?                         // Student's roll number
+  photoUrl       String?                         // Profile photo URL / base64 data
+  faceDescriptor Json?                           // Face descriptor array (128 numbers) for face recognition
+  faceRegistered Boolean  @default(false)        // Whether user has registered their face
+  facePhotos     Json?                           // Array of 6 face photo URLs for training
+  createdAt      DateTime  @default(now())        // Account creation timestamp
 
-  teacherClasses Class[]       @relation("TeacherClasses")
-  attendances    Attendance[]
-  announcements  Announcement[]
-  notifications  Notification[]
+  teacherClasses Class[]       @relation("TeacherClasses") // Classes taught by this teacher
+  attendances    Attendance[]                       // Attendance records for this student
+  announcements  Announcement[]                     // Announcements created by this teacher
+  notifications  Notification[]                     // Notifications sent to this user
 }
+
+// --------------------------------------------------
+// Class – Represents a subject taught by a teacher for a semester
+// --------------------------------------------------
 model Class {
-  id        String        @id @default(cuid())
-  subject   String
-  code      String
-  department String
-  semester  Int
-  year      Int
-  teacherId String
-  teacher   User          @relation("TeacherClasses", fields: [teacherId], references: [id])
-  timetable Timetable[]
-  sessions  Session[]
-  announcements Announcement[]
+  id        String   @id @default(cuid())  // Unique class ID
+  subject   String                         // Subject name (e.g., "Database Systems")
+  code      String                         // Subject code (e.g., "DBSY5A3F")
+  department String                        // Department offering the class
+  semester  Int                            // Semester number
+  year      Int                            // Academic year
+  teacherId String                         // Teacher assigned to this class
+  teacher   User     @relation("TeacherClasses", fields: [teacherId], references: [id])
+  timetable Timetable[]                    // Weekly timetable slots for this class
+  sessions  Session[]                      // All sessions conducted for this class
+  announcements Announcement[]             // Announcements linked to this class
 }
 
+// --------------------------------------------------
+// Timetable – Weekly schedule slot for a class
+// --------------------------------------------------
 model Timetable {
-  id        String   @id @default(cuid())
-  classId   String
-  dayOfWeek Int
-  startTime String
-  endTime   String
-  room      String
+  id        String   @id @default(cuid())  // Unique timetable entry ID
+  classId   String                         // Reference to the class
+  dayOfWeek Int                            // Day of week (0=Sun, 1=Mon, ..., 6=Sat)
+  startTime String                         // Start time (HH:mm format)
+  endTime   String                         // End time (HH:mm format)
+  room      String                         // Room number / location
   class     Class    @relation(fields: [classId], references: [id])
 }
 
+// --------------------------------------------------
+// Session – A single lecture/class session instance
+// --------------------------------------------------
 model Session {
-  id          String        @id @default(cuid())
-  classId     String
-  teacherId   String
-  status      SessionStatus @default(SCHEDULED)
-  startTime   DateTime?
-  endTime     DateTime?
-  qrToken     String?
-  qrExpiresAt DateTime?
-  teacherLat  Float?
-  teacherLng  Float?
-  createdAt   DateTime      @default(now())
+  id          String        @id @default(cuid()) // Unique session ID
+  classId     String                             // Reference to the class
+  teacherId   String                             // Teacher conducting this session
+  status      SessionStatus @default(SCHEDULED)  // Current session status
+  startTime   DateTime?                          // When the session started
+  endTime     DateTime?                          // When the session ended
+  qrToken     String?                            // Random token embedded in QR code
+  qrExpiresAt DateTime?                          // When the QR code expires
+  teacherLat  Float?                             // Teacher's latitude (for geo-verification)
+  teacherLng  Float?                             // Teacher's longitude (for geo-verification)
+  createdAt   DateTime      @default(now())      // Record creation timestamp
   class       Class         @relation(fields: [classId], references: [id])
-  attendances Attendance[]
+  attendances Attendance[]                       // Attendance records for this session
 }
 
+// --------------------------------------------------
+// Attendance – Records a student's attendance for a session
+// Composite unique key ensures one record per student per session
+// --------------------------------------------------
 model Attendance {
-  id               String    @id @default(cuid())
-  sessionId        String
-  studentId        String
-  markedAt         DateTime  @default(now())
-  faceVerified     Boolean
-  locationVerified Boolean
-  facePhotoUrl     String?
-  photo            String?
-  studentName      String?
-  rollNumber       String?
-  subjectId        String?
-  teacherId        String?
+  id               String    @id @default(cuid()) // Unique attendance record ID
+  sessionId        String                         // Reference to the session
+  studentId        String                         // Reference to the student
+  markedAt         DateTime  @default(now())      // Timestamp when attendance was marked
+  faceVerified     Boolean                        // Whether face recognition passed
+  locationVerified Boolean                        // Whether GPS location was within range
+  facePhotoUrl     String?                        // Photo captured during face verification
+  photo            String?                        // Photo captured during QR scan
+  studentName      String?                        // Student's name (cached for fast lookup)
+  rollNumber       String?                        // Student's roll number (cached for fast lookup)
+  subjectId        String?                        // Subject code (cached for fast lookup)
+  teacherId        String?                        // Teacher ID (cached for fast lookup)
 
   session          Session   @relation(fields: [sessionId], references: [id])
   student          User      @relation(fields: [studentId], references: [id])
 
-  @@unique([sessionId, studentId])
+  @@unique([sessionId, studentId]) // Prevents duplicate attendance for same session+student
 }
 
+// --------------------------------------------------
+// Goal – Student's attendance goal/target for a subject
+// --------------------------------------------------
 model Goal {
-  id             String  @id @default(cuid())
-  studentId      String
-  subject        String
-  currentPercent Float
-  targetPercent  Float   @default(75)
-  classesNeeded  Int
+  id             String  @id @default(cuid()) // Unique goal ID
+  studentId      String                       // Reference to the student
+  subject        String                       // Subject name
+  currentPercent Float                        // Current attendance percentage
+  targetPercent  Float   @default(75)         // Target percentage (default 75%)
+  classesNeeded  Int                          // How many more classes needed to reach target
 }
 
+// --------------------------------------------------
+// Announcement – Teacher-created announcements for classes
+// --------------------------------------------------
 model Announcement {
-  id        String   @id @default(cuid())
-  classId   String
-  teacherId String
-  title     String
-  content   String
-  createdAt DateTime @default(now())
-  expiresAt DateTime?
-  semesters Json?
+  id        String   @id @default(cuid()) // Unique announcement ID
+  classId   String                        // Reference to the target class
+  teacherId String                        // Teacher who created the announcement
+  title     String                        // Announcement title
+  content   String                        // Announcement body text
+  createdAt DateTime @default(now())      // When the announcement was posted
+  expiresAt DateTime?                     // When the announcement expires (auto-hides)
+  semesters Json?                         // JSON array of target semester numbers (null = all)
 
   class     Class    @relation(fields: [classId], references: [id])
   teacher   User     @relation(fields: [teacherId], references: [id])
 }
 
+// --------------------------------------------------
+// Notification – System notification for a user
+// Created automatically when announcements are posted
+// --------------------------------------------------
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String   @default("announcement")
-  title     String
-  message   String?
-  link      String?
-  isRead    Boolean  @default(false)
-  announcementId String?
-  createdAt DateTime @default(now())
+  id        String   @id @default(cuid()) // Unique notification ID
+  userId    String                        // Recipient user
+  type      String   @default("announcement") // Notification type (e.g., "announcement")
+  title     String                        // Notification title
+  message   String?                       // Notification body text
+  link      String?                       // Deep link to open on click
+  isRead    Boolean  @default(false)      // Whether the user has read it
+  announcementId String?                  // Link to the source announcement
+  createdAt DateTime @default(now())      // When the notification was created
 
   user      User     @relation(fields: [userId], references: [id])
 }

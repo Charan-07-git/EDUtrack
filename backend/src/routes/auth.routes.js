@@ -1,3 +1,8 @@
+// ============================================================
+// Auth Routes – handles Signup, Login, Photo Upload, and
+// a utility endpoint to delete all student accounts.
+// ============================================================
+
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -6,6 +11,11 @@ import { auth } from "../middleware/auth.js";
 
 const r = Router();
 
+// --------------------------------------------------
+// Helper: generates a JWT token for the given user
+// containing id, role, email, rollNumber and name.
+// Token expires in 7 days.
+// --------------------------------------------------
 function sign(user) {
   return jwt.sign(
     { id: user.id, role: user.role, email: user.email, rollNumber: user.rollNumber, name: user.name },
@@ -14,10 +24,17 @@ function sign(user) {
   );
 }
 
+// --------------------------------------------------
+// POST /signup – Register a new user (student or teacher)
+// Body: { name, email, password, role, department, semester, rollNumber }
+// Validates: roll number range for students, duplicate checks
+// Hashes password, creates user in DB, returns JWT + user object
+// --------------------------------------------------
 r.post("/signup", async (req, res) => {
   try {
     const { name, email, password, role, department, semester, rollNumber } = req.body;
 
+    // Student-specific validation: roll number required and must be in range
     if (role === "STUDENT") {
       if (!rollNumber) {
         return res.status(400).json({ message: "Roll number is required for students" });
@@ -26,6 +43,7 @@ r.post("/signup", async (req, res) => {
       if (num < 100523733001 || num > 100523733100) {
         return res.status(400).json({ message: "Roll number must be between 100523733001 and 100523733100" });
       }
+      // Ensure roll number is not already taken
       const existing = await prisma.user.findFirst({ where: { rollNumber } });
       if (existing) {
         return res.status(400).json({ message: "Roll number already registered" });
@@ -34,6 +52,7 @@ r.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Email is required for teachers" });
     }
 
+    // Teacher-specific duplicate email check
     if (role !== "STUDENT") {
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) {
@@ -41,13 +60,14 @@ r.post("/signup", async (req, res) => {
       }
     }
 
+    // Hash the password using bcrypt with 10 salt rounds
     const hash = await bcrypt.hash(password, 10);
     const semNum = semester ? Number(semester) : null;
     const year = semNum ? Math.ceil(semNum / 2) : null;
     const user = await prisma.user.create({
       data: {
         name,
-        email: role === "STUDENT" ? rollNumber : email,
+        email: role === "STUDENT" ? rollNumber : email, // Students use roll number as email identifier
         password: hash,
         role,
         department,
@@ -58,6 +78,7 @@ r.post("/signup", async (req, res) => {
       },
     });
 
+    // Return JWT token and user data
     res.json({ token: sign(user), user });
   } catch (err) {
     console.error("Signup error:", err?.message || err);
@@ -68,14 +89,22 @@ r.post("/signup", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// POST /login – Authenticate existing user
+// Body: { email, password, role }
+// Role-based lookup: students login via roll number, teachers via email
+// Compares hashed password, returns JWT + user object
+// --------------------------------------------------
 r.post("/login", async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
+    // Basic validation
     if (!email || !password) {
       return res.status(400).json({ message: "Email/Roll number and password are required" });
     }
 
+    // Lookup: students by rollNumber, teachers by email
     let user;
     if (role === "STUDENT") {
       user = await prisma.user.findFirst({ where: { rollNumber: email } });
@@ -83,6 +112,7 @@ r.post("/login", async (req, res) => {
       user = await prisma.user.findUnique({ where: { email } });
     }
 
+    // Verify user exists, role matches, and password is correct
     if (!user || user.role !== role || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -94,6 +124,11 @@ r.post("/login", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// POST /upload-photo – Upload / update user profile photo
+// Requires JWT auth. Body: { photoData } (base64 string)
+// Stores photoUrl on the user record
+// --------------------------------------------------
 r.post("/upload-photo", auth, async (req, res) => {
   const { photoData } = req.body;
 
@@ -105,6 +140,11 @@ r.post("/upload-photo", auth, async (req, res) => {
   res.json({ user });
 });
 
+// --------------------------------------------------
+// DELETE /students – Remove all student accounts (dev utility)
+// Requires ?confirm=yes query param to prevent accidental deletion
+// Cascades: deletes attendance, goals, announcements, then users
+// --------------------------------------------------
 r.delete("/students", async (req, res) => {
   if (req.query.confirm !== "yes") {
     return res.status(400).json({ message: "Pass ?confirm=yes to confirm" });

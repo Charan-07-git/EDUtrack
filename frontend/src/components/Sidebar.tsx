@@ -1,11 +1,24 @@
 "use client";
 
+// ─── Sidebar: Navigation Sidebar ─────────────────────────────────────────────
+// Displays the EDUTrack logo, user profile card with photo upload, navigation
+// links (role-aware for teacher vs student), settings link, and a logout button.
+// On mobile it slides in/out; on desktop it is always visible.
+// ──────────────────────────────────────────────────────────────────────────────
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 
+// ─── Navigation Items ────────────────────────────────────────────────────────
+// Each item has:
+//   - label: Display text in the sidebar
+//   - href:  Route path the link navigates to
+//   - color: Gradient class for the active icon background
+//   - icon:  SVG icon element
+// Two separate arrays for teachers and students since their pages differ.
 const teacherItems = [
   { label: "Today's Classes", href: "/teacher/today", color: "from-blue-600 to-indigo-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg> },
   { label: "Classes & Timetable", href: "/teacher/timetable", color: "from-amber-500 to-orange-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg> },
@@ -24,15 +37,32 @@ const studentItems = [
   { label: "Goals", href: "/student/goals", color: "from-amber-500 to-orange-500", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
 ];
 
+// ─── Sidebar Props ───────────────────────────────────────────────────────────
+// - role:           'teacher' or 'student' — determines which nav items are shown.
+// - sidebarOpen:    Boolean controlling mobile sidebar visibility.
+// - onCloseSidebar: Callback to close the sidebar (used by overlay + nav links).
 export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "teacher" | "student"; sidebarOpen: boolean; onCloseSidebar: () => void }) {
+  // Current pathname — used to highlight the active nav item.
   const p = usePathname();
+  // Current user object + logout function from AuthContext.
   const { user, logout } = useAuth();
+
+  // ─── State Variables ────────────────────────────────────────────────────────
+  // uploading:     True while a photo is being uploaded and compressed.
+  // deletingPhoto: True while the current photo is being deleted.
+  // photoModal:    Controls the profile photo modal visibility.
   const [uploading, setUploading] = useState(false);
   const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
 
+  // Pick the correct set of navigation items based on the user's role.
   const items = role === "teacher" ? teacherItems : studentItems;
 
+  // ─── compressImage() ────────────────────────────────────────────────────────
+  // Takes a base64 data URL from FileReader and downsamples it to at most maxW
+  // pixels wide (preserving aspect ratio) with the given JPEG quality.
+  // Uses an off-screen <canvas> for the resizing.
+  // Returns a Promise that resolves to the compressed base64 string.
   function compressImage(dataUrl: string, maxW = 400, quality = 0.7): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image();
@@ -49,6 +79,11 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
     });
   }
 
+  // ─── handlePhotoUpload() ────────────────────────────────────────────────────
+  // Triggered when the user selects a file from the hidden <input type="file">.
+  // Validates file size (<10MB) and type (must be image), compresses the image,
+  // then sends it to POST /api/auth/upload-photo on the backend.
+  // On success, reloads the page to reflect the new photo.
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -75,6 +110,10 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
     } catch { alert("Failed"); setUploading(false); }
   }
 
+  // ─── deletePhoto() ──────────────────────────────────────────────────────────
+  // Sends a request to the same POST /api/auth/upload-photo endpoint but with
+  // photoData: null, signalling the server to remove the stored photo.
+  // Reloads the page on success so the fallback avatar appears.
   async function deletePhoto() {
     setDeletingPhoto(true);
     try {
@@ -93,9 +132,16 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
 
   return (
     <>
-      {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 overflow-y-auto scrollbar-hide transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-        {/* Logo */}
+      {/* ─── Sidebar Panel ──────────────────────────────────────────────────── */}
+      {/* The sidebar slides in/out based on sidebarOpen on all screen sizes.
+          On desktop it starts open by default; the hamburger button toggles it.
+          On mobile it is opened via the hamburger and closed via overlay taps
+          or nav-item clicks. The dark gradient background and fixed positioning
+          keep it overlaid on the page. */}
+      <aside className={`fixed top-0 left-0 h-dvh w-72 bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white p-4 flex flex-col shadow-2xl border-r border-white/5 z-40 overflow-y-auto scrollbar-hide transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+
+        {/* ─── Logo ──────────────────────────────────────────────────────────── */}
+        {/* Clicking the logo navigates to the role-specific dashboard. */}
         <Link href={`/${role}/dashboard`} className="flex items-center gap-2 mb-3">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
             <img src="/logo.svg" alt="Logo" className="h-5 w-5 brightness-0 invert" />
@@ -103,7 +149,9 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
           <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">EDUTrack</span>
         </Link>
 
-        {/* User Card */}
+        {/* ─── User Card ──────────────────────────────────────────────────────── */}
+        {/* Shows profile photo (clickable → photo modal), faculty code or name,
+            designation/department for teachers, or department + semester for students. */}
         <div className="rounded-2xl bg-gradient-to-br from-white/10 to-white/5 p-3 border border-white/10 backdrop-blur-sm shadow-inner shadow-white/5">
           <div className="flex items-center gap-2">
             <div className="relative group cursor-pointer shrink-0" onClick={() => setPhotoModal(true)}>
@@ -114,6 +162,7 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
               </div>
             </div>
+            {/* Hidden file input for photo upload */}
             <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
             <div className="min-w-0">
               {role === "teacher" ? (
@@ -139,7 +188,9 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
           </div>
         </div>
 
-        {/* Nav */}
+        {/* ─── Navigation ─────────────────────────────────────────────────────── */}
+        {/* Dashboard link always appears first, followed by the role-specific menu
+            items. Active item is highlighted with a blue gradient + pulsing dot. */}
         <nav className="mt-3 space-y-0.5 flex-1">
           <Link
             href={`/${role}/dashboard`}
@@ -157,6 +208,7 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
             {p === `/${role}/dashboard` && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
           </Link>
           <p className="text-xs font-semibold tracking-widest text-slate-500 uppercase px-3 mb-1 mt-2">Menu</p>
+          {/* Map over role-specific nav items, highlight the active one */}
           {items.map((item) => {
             const active = p === item.href;
             return (
@@ -182,7 +234,7 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
           {/* Divider */}
           <div className="my-2 border-t border-white/5" />
 
-          {/* Settings */}
+          {/* ─── Settings Link ────────────────────────────────────────────────── */}
           <Link
             href="/settings"
             onClick={onCloseSidebar}
@@ -199,7 +251,9 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
           </Link>
         </nav>
 
-        {/* Bottom */}
+        {/* ─── Logout Button ──────────────────────────────────────────────────── */}
+        {/* Pinned to the bottom of the sidebar. Calls logout (clears auth state)
+            then onCloseSidebar to close the mobile sidebar. */}
         <div className="mt-auto space-y-1 pt-2 border-t border-white/5">
           <button onClick={() => { logout(); onCloseSidebar(); }} className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
             <svg className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -210,12 +264,16 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
         </div>
       </aside>
 
-      {/* Mobile overlay */}
+      {/* ─── Mobile Overlay ──────────────────────────────────────────────────── */}
+      {/* Semi-transparent backdrop behind the sidebar on mobile. Tapping it
+          closes the sidebar. Hidden on desktop (lg:hidden). */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={onCloseSidebar} />
       )}
 
-      {/* Photo Modal */}
+      {/* ─── Photo Upload Modal ────────────────────────────────────────────────── */}
+      {/* Overlay modal that shows the current profile photo and gives options to
+          change or delete it. Clicking the backdrop closes the modal. */}
       {photoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPhotoModal(false)}>
           <div className="bg-slate-900 rounded-2xl p-4 max-w-sm w-full mx-4 shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()}>
@@ -250,6 +308,7 @@ export default function Sidebar({ role, sidebarOpen, onCloseSidebar }: { role: "
         </div>
       )}
 
+      {/* Custom CSS to hide the sidebar scrollbar for a cleaner look */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

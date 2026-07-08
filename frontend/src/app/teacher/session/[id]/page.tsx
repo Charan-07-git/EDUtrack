@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 
+// The four states a session can go through, in order
 const FLOW_STEPS = [
   { key: 'SCHEDULED', label: 'Ready', icon: '📅', color: 'from-slate-400 to-slate-500' },
   { key: 'ACTIVE', label: 'Live', icon: '▶️', color: 'from-emerald-500 to-emerald-600' },
@@ -15,21 +16,36 @@ const FLOW_STEPS = [
 
 export default function Page() {
   const { id } = useParams();
+
+  // Class details (subject, code, timetable, etc.)
   const [cls, setCls] = useState<any>(null);
+  // Current session object (status, id, etc.)
   const [session, setSession] = useState<any>(null);
+  // Data URL of the generated QR code image
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  // Timestamp (ms) when the QR code expires
   const [qrExpiry, setQrExpiry] = useState<number | null>(null);
+  // Seconds remaining before the QR code expires (countdown)
   const [countdown, setCountdown] = useState(0);
+  // True while an API call (start / generate / finish) is in progress
   const [loading, setLoading] = useState(false);
+  // Number of students marked present so far
   const [attendanceCount, setAttendanceCount] = useState(0);
+  // Full list of students with their attendance status
   const [students, setStudents] = useState<any[]>([]);
+  // Toggle: show absent students instead of present ones
   const [showAbsent, setShowAbsent] = useState(false);
+  // Whether the student list has been fetched at least once
   const [studentsLoaded, setStudentsLoaded] = useState(false);
+  // When set, shows the photo modal with the given image URL
   const [photoModal, setPhotoModal] = useState<string | null>(null);
+
+  // Refs for cleanup intervals and socket connection
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Fetch class details on mount. If an active session exists, also fetch the attendance count.
   useEffect(() => {
     if (id) {
       api(`/api/classes/${id}`).then((classData: any) => {
@@ -44,6 +60,7 @@ export default function Page() {
     }
   }, [id]);
 
+  // Fetch the student list whenever the session ID or status changes and is active/ended
   useEffect(() => {
     if (session?.id && (session.status === 'ACTIVE' || session.status === 'QR_ACTIVE' || session.status === 'ENDED')) {
       api(`/api/sessions/${session.id}/students`).then((d) => {
@@ -53,11 +70,14 @@ export default function Page() {
     }
   }, [session?.id, session?.status]);
 
+  // Connect to Socket.io for real-time attendance updates and start a 5-second polling fallback
   useEffect(() => {
     if (session?.id && (session.status === 'ACTIVE' || session.status === 'QR_ACTIVE')) {
       const socket = io(API);
       socketRef.current = socket;
       socket.emit('join:session', session.id);
+
+      // When a new attendance is marked, re-fetch the count and student list
       socket.on('attendance:count', async () => {
         const d = await api(`/api/sessions/${session.id}/count`);
         setAttendanceCount(d.count);
@@ -65,6 +85,7 @@ export default function Page() {
         setStudents(s);
       });
 
+      // Polling fallback: re-fetch count and students every 5 seconds
       pollRef.current = setInterval(async () => {
         try {
           const d = await api(`/api/sessions/${session.id}/count`);
@@ -74,6 +95,7 @@ export default function Page() {
         } catch {}
       }, 5000);
 
+      // Cleanup: disconnect socket and stop polling on unmount
       return () => {
         socket.disconnect();
         socketRef.current = null;
@@ -85,6 +107,7 @@ export default function Page() {
     }
   }, [session?.id, session?.status]);
 
+  // Countdown timer for the QR code: ticks every second until it reaches 0
   useEffect(() => {
     if (qrExpiry) {
       intervalRef.current = setInterval(() => {
@@ -102,6 +125,7 @@ export default function Page() {
     };
   }, [qrExpiry]);
 
+  // Start a new session by calling the /start endpoint
   async function startSession() {
     setLoading(true);
     const created = await api(`/api/sessions/${id}/start`, { method: 'POST' });
@@ -109,6 +133,7 @@ export default function Page() {
     setLoading(false);
   }
 
+  // Generate a QR code: get the teacher's location then POST to the /qr endpoint
   async function generateQR() {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -120,10 +145,11 @@ export default function Page() {
         }),
       });
       setQrDataUrl(d.qrDataUrl);
-      setQrExpiry(Date.now() + 5 * 60 * 1000);
+      setQrExpiry(Date.now() + 5 * 60 * 1000); // QR expires in 5 minutes
       setSession({ ...session, status: 'QR_ACTIVE' });
       setLoading(false);
     }, async () => {
+      // Geolocation unavailable – generate QR without teacher location
       const d = await api(`/api/sessions/${session.id}/qr`, { method: 'POST' });
       setQrDataUrl(d.qrDataUrl);
       setQrExpiry(Date.now() + 5 * 60 * 1000);
@@ -132,6 +158,7 @@ export default function Page() {
     });
   }
 
+  // End the session, clear the QR, and mark status as ENDED
   async function finishSession() {
     setLoading(true);
     setQrDataUrl(null);
@@ -142,6 +169,7 @@ export default function Page() {
     setLoading(false);
   }
 
+  // Derived lists for the attendance UI
   const presentStudents = students.filter(s => s.isPresent);
   const absentStudents = students.filter(s => !s.isPresent);
 
@@ -152,7 +180,7 @@ export default function Page() {
     <Shell role="teacher" title="Session Control">
       <BackButton href="/teacher/today" label="Back to Today's Classes" />
 
-      {/* Photo Modal */}
+      {/* Photo modal — full-screen overlay to view a student's captured photo */}
       {photoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setPhotoModal(null)}>
           <div className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
@@ -171,7 +199,7 @@ export default function Page() {
 
       {cls ? (
         <div className="mt-6 max-w-3xl space-y-6">
-          {/* Class Header */}
+          {/* Class header card — subject, code, room, time */}
           <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
@@ -184,7 +212,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Animated Progress Flow */}
+          {/* Animated flow progress — highlights the current step (Ready → Live → QR Active → Done) */}
           <div className="card">
             <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-5">Session Progress</h3>
             <div className="flex items-center justify-between relative">
@@ -216,7 +244,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Students Marked Counter */}
+          {/* Live attendance counter — big number shown during active/QR_ACTIVE */}
           {(status === 'ACTIVE' || status === 'QR_ACTIVE') && (
             <div className="card text-center" style={{ animation: 'bounceIn 0.5s ease-out' }}>
               <p className="text-sm text-slate-500 mb-2">Students Marked</p>
@@ -226,7 +254,7 @@ export default function Page() {
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Action buttons — Start, Generate QR, End, depending on current status */}
           <div className="flex flex-wrap gap-3" style={{ animation: 'fadeUp 0.5s ease-out 0.3s both' }}>
             {status === 'SCHEDULED' && (
               <button
@@ -265,7 +293,7 @@ export default function Page() {
             )}
           </div>
 
-          {/* QR Display */}
+          {/* QR code display with countdown bar and regenerate/finish buttons */}
           {qrDataUrl && (
             <div className="card flex flex-col items-center" style={{ animation: 'scaleIn 0.5s ease-out' }}>
               <div className="flex items-center gap-2 mb-4">
@@ -276,6 +304,7 @@ export default function Page() {
                 <img src={qrDataUrl} alt="QR Code" className="w-64 h-64 rounded-xl" />
               </div>
               <div className="mt-6 w-full">
+                {/* Timer progress bar — shrinks from 100% to 0% over 5 minutes */}
                 <div className="w-full bg-slate-200 rounded-full h-3 mb-3">
                   <div
                     className="bg-gradient-to-r from-amber-400 to-red-500 h-3 rounded-full transition-all duration-1000"
@@ -308,12 +337,13 @@ export default function Page() {
             </div>
           )}
 
-          {/* Live Attendance List */}
+          {/* Student attendance list with Present / Absent toggle */}
           {(status === 'ACTIVE' || status === 'QR_ACTIVE' || status === 'ENDED') && (
             <div className="card" style={{ animation: 'fadeUp 0.5s ease-out 0.5s both' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Attendance List</h3>
                 <div className="flex gap-2">
+                  {/* Toggle button: Present */}
                   <button
                     onClick={() => setShowAbsent(false)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
@@ -322,6 +352,7 @@ export default function Page() {
                   >
                     Present ({presentStudents.length})
                   </button>
+                  {/* Toggle button: Absent */}
                   <button
                     onClick={() => setShowAbsent(true)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
@@ -336,12 +367,14 @@ export default function Page() {
                 {studentsLoaded && students.length === 0 && (
                   <p className="text-sm text-slate-400 text-center py-8">No students found for this class</p>
                 )}
+                {/* Show either absent or present students based on toggle */}
                 {(showAbsent ? absentStudents : presentStudents).map((s) => (
                   <div
                     key={s.id}
                     className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Initials avatar */}
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0 ${
                         s.isPresent ? 'bg-emerald-500' : 'bg-slate-400'
                       }`}>
@@ -364,6 +397,7 @@ export default function Page() {
                     <div className="flex items-center gap-2 shrink-0">
                       {s.isPresent ? (
                         <>
+                          {/* View photo button (only shown if a photo was captured) */}
                           {s.photo ? (
                             <button onClick={() => setPhotoModal(s.photo)} className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all text-xs font-medium flex items-center gap-1">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -384,6 +418,7 @@ export default function Page() {
           )}
         </div>
       ) : (
+        // Loading state while the class data is being fetched
         <div className="mt-16 text-center">
           <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-muted">Loading class details...</p>

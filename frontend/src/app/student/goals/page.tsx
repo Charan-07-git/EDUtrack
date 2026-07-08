@@ -4,11 +4,18 @@ import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
 import { useEffect, useState } from 'react';
 
+// Main page component for the Attendance Goals feature.
+// Displays a what-if calculator and per-subject goal cards with
+// an estimate of how many more classes the student needs to reach 75 %.
 export default function Page() {
+  // Raw goals data fetched from the API.
   const [g, setG] = useState<any[]>([]);
+  // Whether the API call has completed (successfully or with error).
   const [loaded, setLoaded] = useState(false);
+  // The target percentage the student slides in the what-if calculator (default 85).
   const [targetPercent, setTargetPercent] = useState(85);
 
+  // Fetch goals data once on mount.
   useEffect(() => {
     api('/api/goals').then((d) => {
       setG(d);
@@ -16,36 +23,55 @@ export default function Page() {
     }).catch(() => setLoaded(true));
   }, []);
 
+  // Combine all subjects into a single overall total/attended summary (skipping empty subjects).
   const summary = g.filter((x) => x.total > 0).reduce(
     (acc, x) => ({ total: acc.total + x.total, attended: acc.attended + x.attended }),
     { total: 0, attended: 0 }
   );
 
+  // Overall attendance percentage across all subjects.
   const overallPercent = summary.total ? Math.round((summary.attended / summary.total) * 100) : 0;
 
+  /**
+   * what-if calculator: predicts how many consecutive classes must be attended
+   * to reach the user-chosen targetPercent.
+   *
+   * Formula derivation:
+   *   Let T = total classes so far, A = attended so far, p = target (as decimal).
+   *   Let n = number of future classes to attend (all attended).
+   *   We want (A + n) / (T + n) >= p.
+   *   Solving for n:  A + n >= p(T + n)  →  n >= (pT - A) / (1 - p).
+   *
+   * @returns {number} The number of additional consecutive classes the student must attend.
+   */
   const whatIf = () => {
     const target = targetPercent / 100;
     const needed = Math.ceil((target * summary.total - summary.attended) / (1 - target));
-    return needed > 0 ? needed : 0;
+    return needed > 0 ? needed : 0;  // Can't be negative – 0 means already reached.
   };
 
   return (
     <Shell role="student" title="Goals">
       <BackButton href="/student/dashboard" label="Back to Dashboard" />
+
       {!loaded ? (
+        /* Spinner: data still loading */
         <div className="card text-center py-16 mt-6">
           <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-muted">Loading goals...</p>
         </div>
       ) : g.length === 0 ? (
+        /* Empty state: no goals data returned */
         <div className="card text-center py-16 mt-6">
           <span className="text-5xl mb-4 block">🎯</span>
           <p className="text-lg font-semibold text-slate-300">No goals yet</p>
           <p className="text-muted mt-2">Goals will appear once sessions are conducted for your classes</p>
         </div>
       ) : (
+        /* Main content */
         <div className="mt-6 space-y-6">
-          {/* What-if Calculator */}
+
+          {/* ---------- What-if Calculator Section ---------- */}
           {summary.total > 0 && (
             <div className="card" style={{ animation: 'fadeUp 0.4s ease-out' }}>
               <h3 className="font-bold text-slate-900 dark:text-white mb-3">🎯 What-if Calculator</h3>
@@ -54,8 +80,10 @@ export default function Page() {
               </p>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="text-sm text-slate-600 dark:text-slate-400">Target %:</label>
+                {/* Range slider that sets targetPercent, min 75 max 100 */}
                 <input type="range" min="75" max="100" value={targetPercent} onChange={(e) => setTargetPercent(Number(e.target.value))} className="w-48 accent-blue-600" />
                 <span className="text-lg font-bold text-blue-600">{targetPercent}%</span>
+                {/* Inline result card */}
                 <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
                   <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">Need {whatIf()} more consecutive classes</p>
                 </div>
@@ -63,15 +91,17 @@ export default function Page() {
             </div>
           )}
 
-          {/* Subject Goals */}
+          {/* ---------- Per-Subject Goal Cards ---------- */}
           <div className="grid gap-4">
             {g.filter((x) => x.total > 0).map((x) => (
               <div key={x.subject} className="card">
                 <div className="flex items-start justify-between">
+                  {/* Left side: subject name and attendance fraction */}
                   <div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white">{x.subject}</h3>
                     <p className="text-sm text-slate-500 mt-1">{x.attended} / {x.total} sessions attended</p>
                   </div>
+                  {/* Right side: colour-coded percentage badge */}
                   <div className={`text-right px-4 py-2 rounded-xl font-bold text-lg ${
                     x.percent >= 75 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' :
                     x.percent >= 65 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' :
@@ -80,11 +110,13 @@ export default function Page() {
                     {x.percent}%
                   </div>
                 </div>
+                {/* If below 75 %, show how many more sessions are needed (computed server-side as x.classesNeeded). */}
                 {x.percent < 75 && x.classesNeeded > 0 && (
                   <p className="text-slate-500 text-sm mt-3">
                     Attend <b className="text-slate-900 dark:text-white">{x.classesNeeded}</b> more session{x.classesNeeded > 1 ? 's' : ''} to reach 75%
                   </p>
                 )}
+                {/* If already at or above 75 %, show an encouraging message. */}
                 {x.percent >= 75 && (
                   <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-3 font-medium">✓ On track for 75% target</p>
                 )}

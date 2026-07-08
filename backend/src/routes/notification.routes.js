@@ -1,3 +1,9 @@
+// ============================================================
+// Notification Routes – paginated notification listing, unread
+// count, and mark-as-read operations.
+// All routes require JWT authentication.
+// ============================================================
+
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { auth } from "../middleware/auth.js";
@@ -5,6 +11,11 @@ import { auth } from "../middleware/auth.js";
 const r = Router();
 r.use(auth);
 
+// --------------------------------------------------
+// GET / – Get paginated notifications for the logged-in user
+// Query params: page (default 1), limit (default 20, max 50)
+// Returns notifications, total count, page, and limit
+// --------------------------------------------------
 r.get("/", async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
@@ -20,6 +31,9 @@ r.get("/", async (req, res) => {
   res.json({ notifications, total, page, limit });
 });
 
+// --------------------------------------------------
+// GET /unread-count – Get count of unread notifications
+// --------------------------------------------------
 r.get("/unread-count", async (req, res) => {
   const count = await prisma.notification.count({
     where: { userId: req.user.id, isRead: false },
@@ -27,6 +41,9 @@ r.get("/unread-count", async (req, res) => {
   res.json({ count });
 });
 
+// --------------------------------------------------
+// PUT /:id/read – Mark a single notification as read
+// --------------------------------------------------
 r.put("/:id/read", async (req, res) => {
   await prisma.notification.updateMany({
     where: { id: req.params.id, userId: req.user.id },
@@ -35,6 +52,9 @@ r.put("/:id/read", async (req, res) => {
   res.json({ success: true });
 });
 
+// --------------------------------------------------
+// PUT /read-all – Mark all unread notifications as read
+// --------------------------------------------------
 r.put("/read-all", async (req, res) => {
   await prisma.notification.updateMany({
     where: { userId: req.user.id, isRead: false },

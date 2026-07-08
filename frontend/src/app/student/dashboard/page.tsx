@@ -8,13 +8,15 @@ import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
+// ---------- Navigation Tiles Configuration ----------
+// Each tile is a card on the dashboard linking to a student sub-page.
 const tiles = [
   {
     href: '/student/overview',
     gradient: 'from-cyan-500 via-blue-500 to-indigo-600',
     shadow: 'shadow-cyan-500/25',
     label: 'Attendance Overview',
-    value: '',
+    value: '',  // placeholder – will be overridden by attPercent for overview tile
     icon: <svg className="w-7 h-7 text-white/40 absolute top-3 right-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>,
   },
   {
@@ -59,25 +61,39 @@ const tiles = [
   },
 ];
 
+// Main page component for the Student Dashboard – the landing page after login.
+// Displays a greeting header, quick-link icons, and staggered animated navigation tiles
+// that show the user's year/semester/department and overall attendance percentage.
 export default function Page() {
   const { user } = useAuth();
   const router = useRouter();
+
+  // Time-of-day based greeting (e.g. "Good morning").
   const [greeting, setGreeting] = useState('');
+  // Label text showing "Year X | Semester Y | Department Z".
   const [setupLabel, setSetupLabel] = useState('');
+  // Overall attendance percentage fetched from the dashboard API (null until loaded).
   const [attPercent, setAttPercent] = useState<number | null>(null);
+
+  // On mount (or when user id changes), try to build the setup label from the user
+  // context or localStorage, and fetch attendance + user profile data.
   useEffect(() => {
     const year = user?.year || Number(localStorage.getItem("edutrack_year"));
     const sem = user?.semester || Number(localStorage.getItem("edutrack_semester"));
     const dept = user?.department || localStorage.getItem("edutrack_department") || "CSE";
     setSetupLabel(year ? `Year ${year} | Semester ${sem} | ${dept}` : 'Set up your academic year');
+    // If no year/semester/dept are set, redirect to setup page.
     if (!year || !sem || !dept) {
       router.replace("/student/setup");
       return;
     }
+    // Try to get a more accurate user profile from /api/me.
     api("/api/me").then((u) => { setSetupLabel(`Year ${u.year} | Semester ${u.semester} | ${u.department}`); }).catch(() => {});
+    // Fetch dashboard data to compute the overall attendance percentage.
     api('/api/student/dashboard').then((data) => {
       const classes = data.classes || [];
       let total = 0, attended = 0;
+      // Sum over all classes: total = sum of all sessions, attended = sessions where the student has a matching attendance.
       classes.forEach((c: any) => {
         total += c.sessions.length;
         attended += c.sessions.filter((s: any) =>
@@ -88,6 +104,8 @@ export default function Page() {
     }).catch(() => {});
   }, [user?.id]);
 
+  // Independent effect – runs once on mount and then every 60 seconds to keep
+  // the greeting up to date.
   useEffect(() => {
     function update() {
       const hour = new Date().getHours();
@@ -98,6 +116,8 @@ export default function Page() {
     return () => clearInterval(id);
   }, []);
 
+  // ---------- Header Component ----------
+  // Animated top section showing the greeting, user info, and quick link icons.
   const header = (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -105,8 +125,10 @@ export default function Page() {
       transition={{ duration: 0.5 }}
       className="relative overflow-hidden bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 rounded-2xl p-4 lg:p-6 mb-4 lg:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-slate-900/20"
     >
+      {/* Decorative background circles */}
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5" />
       <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/5" />
+      {/* Greeting & setup label */}
       <div className="relative z-10">
         <h2 className="text-xl lg:text-2xl font-bold text-white">
           {greeting}, {user?.name?.split(' ')[0] || 'Student'}!
@@ -115,6 +137,7 @@ export default function Page() {
           {setupLabel || 'Loading...'}
         </p>
       </div>
+      {/* Quick-link icon buttons (Calendar, Settings, Announcements) */}
       <div className="relative z-10 flex items-center gap-3">
         <Link href="/student/calendar" className="shrink-0 p-2.5 rounded-xl bg-white/15 hover:bg-white/25 transition-all">
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -143,15 +166,19 @@ export default function Page() {
       <motion.div
         initial="hidden"
         animate="visible"
+        // Stagger children – each tile animates in 0.08 s after the previous one.
         variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         className="grid gap-3 sm:gap-6 md:grid-cols-2 max-w-5xl"
       >
+        {/* Iterate over the tiles array and render each as a motion-animated link card */}
         {tiles.map((t) => {
+          // For the overview tile, show the live attendance percentage; otherwise use the static value.
           const displayValue = t.href === '/student/overview'
             ? (attPercent !== null ? `${attPercent}%` : 'N/A') : t.value;
           return (
           <motion.div
             key={t.href}
+            // Fade-in + slide-up per tile
             variants={{
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
@@ -161,14 +188,18 @@ export default function Page() {
               href={t.href}
               className={`relative rounded-2xl bg-gradient-to-br ${t.gradient} p-5 lg:p-8 min-h-[120px] lg:min-h-[160px] flex flex-col justify-between cursor-pointer hover:shadow-xl ${t.shadow} hover:-translate-y-1 transition-all duration-300 overflow-hidden group`}
             >
+              {/* Decorative background circles */}
               <div className="absolute -bottom-4 -right-4 w-32 h-32 rounded-full bg-white/5" />
               <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-white/5" />
+              {/* Hover overlay */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-white/10 to-transparent" />
               {t.icon}
+              {/* Tile label and optional subtitle */}
               <div className="relative z-10">
                 <p className="text-white/90 text-sm lg:text-base font-semibold">{t.label}</p>
                 {t.sub && <p className="text-white/60 text-xs lg:text-sm mt-0.5">{t.sub}</p>}
               </div>
+              {/* Animated-counter-style large percentage/value display */}
               {displayValue && (
                 <p className="relative z-10 text-white text-4xl lg:text-5xl font-extrabold">{displayValue}</p>
               )}

@@ -3,10 +3,21 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
+/**
+ * LoginPage — handles both login and signup.
+ * A role toggle lets the user switch between TEACHER and STUDENT before submitting.
+ */
 export default function LoginPage() {
+  // login() and signup() come from AuthContext (makes API calls and stores the token/user)
   const { login, signup } = useAuth();
+
+  // mode controls whether we show login or signup form fields
   const [mode, setMode] = useState<"login" | "signup">("login");
+
+  // role determines whether we treat the identifier as rollNumber (student) or email (teacher)
   const [role, setRole] = useState<"TEACHER" | "STUDENT">("TEACHER");
+
+  // form object holds all text inputs: email, password, name, department, semester, rollNumber
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -15,12 +26,27 @@ export default function LoginPage() {
     semester: 5,
     rollNumber: "",
   });
+
+  // photo stores the base64 data URL of the uploaded profile picture (signup only)
   const [photo, setPhoto] = useState("");
+
+  // remember — whether to persist the student roll number or teacher email in localStorage
   const [remember, setRemember] = useState(false);
+
+  // confirmPassword — only used during signup to verify the user typed the password correctly
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // err — a user-friendly error message displayed in a red banner above the form
   const [err, setErr] = useState("");
+
+  // submitting — disables the submit button and shows a spinner while the request is in flight
   const [submitting, setSubmitting] = useState(false);
 
+  /**
+   * handlePhoto — called when the user picks a file from the photo upload input.
+   * Validates file size (max 2 MB), reads the file as a base64 data URL via FileReader,
+   * and stores the result in the `photo` state so it can be previewed and sent on signup.
+   */
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -33,12 +59,16 @@ export default function LoginPage() {
     reader.readAsDataURL(file);
   }
 
+  // showPassword toggles the password field between "password" and "text" types
   const [showPassword, setShowPassword] = useState(false);
 
+  // On first mount, read the saved "remember me" preference from localStorage
   useEffect(() => {
     setRemember(localStorage.getItem('edutrack_remember') === 'true');
   }, []);
 
+  // Whenever the role changes, check if there's a previously saved identifier
+  // (roll number for students, email for teachers) and pre-fill the field
   useEffect(() => {
     const saved = localStorage.getItem('edutrack_remember_id');
     if (saved) {
@@ -47,6 +77,10 @@ export default function LoginPage() {
     }
   }, [role]);
 
+  /**
+   * clearForm — resets every input field and the error message.
+   * Called when switching between login and signup.
+   */
   function clearForm() {
     setForm({ email: "", password: "", name: "", department: "CSE", semester: 5, rollNumber: "" });
     setPhoto("");
@@ -55,25 +89,40 @@ export default function LoginPage() {
     setShowPassword(false);
   }
 
+  /**
+   * switchMode — toggles between login and signup and clears the form.
+   * The link text below the submit button also changes accordingly.
+   */
   function switchMode() {
     setMode(mode === "login" ? "signup" : "login");
     clearForm();
   }
 
+  /**
+   * submit — handles the form's onSubmit event.
+   * Validation:
+   *  - Login: checks that the identifier (roll number or email) is not empty.
+   *  - Signup: checks that password and confirmPassword match.
+   * If "remember me" is checked, stores the identifier in localStorage so it survives page reloads.
+   * Calls login() or signup() from AuthContext depending on the current mode.
+   * On error, shows the error message in the banner.
+   */
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (submitting) return;
+    if (submitting) return;          // prevent double-submit
     setSubmitting(true);
     try {
       if (mode === "login") {
         const id = role === "STUDENT" ? form.rollNumber : form.email;
         if (!id) { setErr("Please enter your " + (role === "STUDENT" ? "roll number" : "email")); setSubmitting(false); return; }
+        // Persist or remove the "remember me" preference and identifier
         localStorage.setItem('edutrack_remember', String(remember));
         if (remember) localStorage.setItem('edutrack_remember_id', id);
         else localStorage.removeItem('edutrack_remember_id');
         await login(id, form.password, role);
       } else {
+        // Signup mode: passwords must match
         if (form.password !== confirmPassword) {
           setErr("Passwords do not match.");
           setSubmitting(false);
@@ -92,7 +141,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900 px-4">
       <div className="w-full max-w-md text-center">
 
-        {/* HEADER */}
+        {/* HEADER — Logo and tagline */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
             <img src="/logo.svg" alt="EDUTrack" className="w-16 h-16" />
@@ -105,7 +154,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* CARD */}
+        {/* CARD — The white card containing all form elements */}
         <div className="bg-white dark:bg-slate-800 shadow-2xl rounded-3xl px-8 py-8 text-left">
             <h2 className="text-xl font-semibold text-center mb-1 text-slate-900 dark:text-white">
             {mode === "login" ? "Welcome Back!" : "Create Account"}
@@ -116,14 +165,14 @@ export default function LoginPage() {
               : "Register to get started"}
           </p>
 
-          {/* ERROR */}
+          {/* ERROR — Red banner shown when err is non-empty */}
           {err && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 text-sm rounded-xl text-center">
               {err}
             </div>
           )}
 
-          {/* ROLE TOGGLE */}
+          {/* ROLE TOGGLE — Pill-shaped switching buttons for TEACHER / STUDENT */}
           <div className="flex bg-gray-200 dark:bg-slate-700 p-1 rounded-full mb-6">
             <button
               type="button"
@@ -142,18 +191,19 @@ export default function LoginPage() {
                  role === "STUDENT"
                    ? "bg-blue-500 text-white shadow-md"
                    : "text-gray-400 hover:text-gray-800 dark:hover:text-white"
-              }`}
-              onClick={() => setRole("STUDENT")}
-            >
-              Student
-            </button>
-          </div>
+               }`}
+               onClick={() => setRole("STUDENT")}
+             >
+               Student
+             </button>
+           </div>
 
-          {/* FORM */}
+          {/* FORM — The <form> element that triggers submit() */}
           <form onSubmit={submit} className="space-y-5">
-            {/* SIGNUP FIELDS */}
+            {/* SIGNUP FIELDS — Extra inputs that only appear when mode === "signup" */}
             {mode === "signup" && (
               <>
+                {/* Photo upload — circular clickable area, triggers hidden file input */}
                 <div className="flex flex-col items-center mb-2">
                   <div className="relative group cursor-pointer" onClick={() => document.getElementById("signup-photo")?.click()}>
                     <div className={`w-24 h-24 rounded-full bg-gray-100 dark:bg-slate-700 border-2 border-dashed ${photo ? 'border-blue-400' : 'border-gray-300 dark:border-slate-500'} flex items-center justify-center overflow-hidden`}>
@@ -173,6 +223,7 @@ export default function LoginPage() {
                   <input id="signup-photo" type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                   <p className="text-xs text-gray-400 dark:text-slate-400 mt-1">Add profile photo</p>
                 </div>
+                {/* Full name input (signup only) */}
                 <input
                   type="text"
                   placeholder="Full Name"
@@ -181,6 +232,7 @@ export default function LoginPage() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
                 />
+                {/* Hint for student signup — department/semester are set later in settings */}
                 {role === "STUDENT" && (
                   <p className="text-xs text-slate-400 dark:text-slate-500 text-center -mt-2">
                     You'll set your department and semester after signup
@@ -189,7 +241,7 @@ export default function LoginPage() {
               </>
             )}
 
-            {/* ROLL NUMBER (student) / EMAIL (teacher) */}
+            {/* ROLL NUMBER (student) / EMAIL (teacher) — primary identifier based on role */}
             {role === "STUDENT" ? (
               <input
                 type="text"
@@ -212,7 +264,7 @@ export default function LoginPage() {
               />
             )}
 
-            {/* PASSWORD */}
+            {/* PASSWORD — input with show/hide toggle button (eye icon) */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -241,7 +293,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* CONFIRM PASSWORD (signup only) */}
+            {/* CONFIRM PASSWORD (signup only) — second password field to catch typos */}
             {mode === "signup" && (
               <div className="relative">
                 <input
@@ -256,7 +308,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* REMEMBER (login only) */}
+            {/* REMEMBER (login only) — checkbox to optionally persist the identifier */}
             {mode === "login" && (
               <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400 cursor-pointer select-none">
                 <input
@@ -269,7 +321,7 @@ export default function LoginPage() {
               </label>
             )}
 
-            {/* SUBMIT BUTTON */}
+            {/* SUBMIT BUTTON — shows spinner while submitting; disabled if passwords don't match on signup */}
             <button
               type="submit"
               disabled={submitting || (mode === "signup" && form.password !== confirmPassword)}
@@ -286,7 +338,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* LINKS */}
+          {/* LINKS — "Forgot password?" placeholder (login) and toggle between login/signup */}
           <div className="text-center mt-6 text-sm space-y-2">
             {mode === "login" && (
               <button type="button" onClick={() => setErr('Password reset is not available yet. Please contact your administrator.')} className="text-blue-500 cursor-pointer hover:text-blue-700 hover:underline transition-all bg-transparent border-none text-sm">

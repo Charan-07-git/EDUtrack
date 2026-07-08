@@ -1,11 +1,21 @@
+// ============================================================
+// Data Routes – profile, dashboard, classes, analytics, goals,
+// attendance reports, leaderboard, and CSV export.
+// All routes require JWT authentication.
+// ============================================================
+
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { auth } from "../middleware/auth.js";
 import bcrypt from "bcryptjs";
 
 const r = Router();
-r.use(auth);
+r.use(auth); // All routes below require a valid JWT token
 
+// --------------------------------------------------
+// GET /me – Get the authenticated user's profile
+// Returns selected fields (excludes sensitive data like password)
+// --------------------------------------------------
 r.get("/me", async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
@@ -28,6 +38,11 @@ r.get("/me", async (req, res) => {
   res.json(user);
 });
 
+// --------------------------------------------------
+// PUT /me – Update the authenticated user's profile
+// Accepts partial updates: name, department, semester, etc.
+// If facultyCode is provided, looks up designation from timetable data
+// --------------------------------------------------
 r.put("/me", async (req, res) => {
   const { name, department, semester, year, selectedSubject, facultyCode, photoUrl, faceRegistered } = req.body;
   const data = {};
@@ -38,6 +53,7 @@ r.put("/me", async (req, res) => {
   if (selectedSubject !== undefined) data.selectedSubject = selectedSubject;
   if (photoUrl !== undefined) data.photoUrl = photoUrl;
   if (faceRegistered !== undefined) data.faceRegistered = Boolean(faceRegistered);
+  // Auto-detect designation (Dr./Prof.) from timetable data based on faculty code
   if (facultyCode !== undefined) {
     data.facultyCode = facultyCode;
     try {
@@ -63,6 +79,10 @@ r.put("/me", async (req, res) => {
   res.json(user);
 });
 
+// --------------------------------------------------
+// DELETE /me – Delete the authenticated user's account
+// Cascades: removes announcements, attendance, sessions, timetable, classes, goals
+// --------------------------------------------------
 r.delete("/me", async (req, res) => {
   await prisma.announcement.deleteMany({ where: { teacherId: req.user.id } });
   await prisma.attendance.deleteMany({ where: { studentId: req.user.id } });
@@ -74,6 +94,10 @@ r.delete("/me", async (req, res) => {
   res.json({ success: true });
 });
 
+// --------------------------------------------------
+// PUT /me/password – Change password
+// Verifies current password before updating to new one
+// --------------------------------------------------
 r.put("/me/password", async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
@@ -85,6 +109,11 @@ r.put("/me/password", async (req, res) => {
   res.json({ success: true });
 });
 
+// --------------------------------------------------
+// PUT /me/face-descriptor – Store face recognition data
+// Expects an array of 128 face descriptor numbers (from face-api.js)
+// Marks the user as face-registered
+// --------------------------------------------------
 r.put("/me/face-descriptor", async (req, res) => {
   const { faceDescriptor, photoUrl } = req.body;
   if (!faceDescriptor || !Array.isArray(faceDescriptor)) {
@@ -102,6 +131,9 @@ r.put("/me/face-descriptor", async (req, res) => {
   res.json({ success: true, stored: true, user });
 });
 
+// --------------------------------------------------
+// PUT /me/face-photos – Store 6 face photo URLs for training
+// --------------------------------------------------
 r.put("/me/face-photos", async (req, res) => {
   const { facePhotos } = req.body;
   if (!facePhotos || !Array.isArray(facePhotos) || facePhotos.length !== 6) {
@@ -115,6 +147,10 @@ r.put("/me/face-photos", async (req, res) => {
   res.json({ success: true, user });
 });
 
+// --------------------------------------------------
+// GET /teacher/dashboard – Teacher's dashboard data
+// Returns all classes with their timetable and sessions
+// --------------------------------------------------
 r.get("/teacher/dashboard", async (req, res) => {
   const classes = await prisma.class.findMany({
     where: { teacherId: req.user.id },
@@ -123,6 +159,10 @@ r.get("/teacher/dashboard", async (req, res) => {
   res.json({ classes, lowAttendance: [] });
 });
 
+// --------------------------------------------------
+// GET /student/dashboard – Student's dashboard data
+// Shows classes matching their department/semester OR classes they've attended
+// --------------------------------------------------
 r.get("/student/dashboard", async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
@@ -142,6 +182,11 @@ r.get("/student/dashboard", async (req, res) => {
   res.json({ classes });
 });
 
+// --------------------------------------------------
+// GET /classes/today – Get today's classes
+// For teachers: filters by day of week; auto-creates classes if none exist
+// For students: shows classes matching their dept/semester on today's day
+// --------------------------------------------------
 r.get("/classes/today", async (req, res) => {
   const now = new Date();
   const day = now.getDay();
@@ -152,6 +197,7 @@ r.get("/classes/today", async (req, res) => {
       where: { teacherId: req.user.id, ...(semFilter ? { semester: semFilter } : {}) },
       include: { timetable: true },
     });
+    // Auto-create classes from teacher's selected subjects if none exist yet
     if (classes.length === 0) {
       const user = await prisma.user.findUnique({ where: { id: req.user.id } });
       if (user?.selectedSubject) {
@@ -193,6 +239,10 @@ r.get("/classes/today", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /analytics – Teacher's attendance analytics
+// Returns assigned/taken counts plus hardcoded chart data
+// --------------------------------------------------
 r.get("/analytics", async (req, res) => {
   const classes = await prisma.class.findMany({
     where: { teacherId: req.user.id },
@@ -211,6 +261,9 @@ r.get("/analytics", async (req, res) => {
   });
 });
 
+// --------------------------------------------------
+// GET /teacher/classes – List all classes for a teacher
+// --------------------------------------------------
 r.get("/teacher/classes", async (req, res) => {
   try {
     const classes = await prisma.class.findMany({
@@ -230,6 +283,11 @@ r.get("/teacher/classes", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /teacher/student-report/:classId – Per-student attendance report
+// For each student in the class, calculates sessions attended + percentage
+// Flags students below 75% attendance
+// --------------------------------------------------
 r.get("/teacher/student-report/:classId", async (req, res) => {
   const { classId } = req.params;
 
@@ -293,6 +351,11 @@ r.get("/teacher/student-report/:classId", async (req, res) => {
   });
 });
 
+// --------------------------------------------------
+// POST /teacher/subjects – Create a new subject/class
+// Auto-generates a subject code from initials + random suffix
+// Also saves to teacher's selectedSubject JSON field
+// --------------------------------------------------
 r.post("/teacher/subjects", async (req, res) => {
   try {
     const { name, semester } = req.body;
@@ -312,6 +375,7 @@ r.post("/teacher/subjects", async (req, res) => {
         teacherId: req.user.id,
       },
     });
+    // Persist subject in teacher's selectedSubject JSON for auto-class creation
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     let subjects = [];
     if (user.selectedSubject) {
@@ -329,6 +393,10 @@ r.post("/teacher/subjects", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// PUT /teacher/subjects/:code – Update an existing subject
+// Updates both the Class record and the teacher's selectedSubject list
+// --------------------------------------------------
 r.put("/teacher/subjects/:code", async (req, res) => {
   try {
     const { code } = req.params;
@@ -370,6 +438,10 @@ r.put("/teacher/subjects/:code", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /teacher/my-subjects – Get teacher's selected subject list
+// Merges stored JSON subjects with any existing Class records
+// --------------------------------------------------
 r.get("/teacher/my-subjects", async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
@@ -393,6 +465,10 @@ r.get("/teacher/my-subjects", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// PUT /teacher/my-subjects – Replace teacher's full subject list
+// Creates Class records for any new subjects not already in the DB
+// --------------------------------------------------
 r.put("/teacher/my-subjects", async (req, res) => {
   try {
     const { subjects } = req.body;
@@ -423,6 +499,10 @@ r.put("/teacher/my-subjects", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /teacher/session-archive – Past ended sessions for a teacher
+// Includes attendance count for each session
+// --------------------------------------------------
 r.get("/teacher/session-archive", async (req, res) => {
   const sessions = await prisma.session.findMany({
     where: { teacherId: req.user.id, status: "ENDED" },
@@ -438,6 +518,10 @@ r.get("/teacher/session-archive", async (req, res) => {
   })));
 });
 
+// --------------------------------------------------
+// GET /export/:classId – Export attendance as CSV file
+// Generates a downloadable CSV with Name, Email, Attended, Total, Percent
+// --------------------------------------------------
 r.get("/export/:classId", async (req, res) => {
   const classData = await prisma.class.findUnique({
     where: { id: req.params.classId },
@@ -463,6 +547,9 @@ r.get("/export/:classId", async (req, res) => {
   res.send(csvRows.join("\n"));
 });
 
+// --------------------------------------------------
+// GET /low-attendance – Hardcoded low-attendance student examples
+// --------------------------------------------------
 r.get("/low-attendance", async (req, res) =>
   res.json([
     {
@@ -475,12 +562,18 @@ r.get("/low-attendance", async (req, res) =>
   ])
 );
 
+// --------------------------------------------------
+// GET /leaderboard – Top 10 students by attendance score
+// Score = attendance count / (count + 10) * 100 (diminishing returns formula)
+// Also calculates current consecutive-day attendance streak
+// --------------------------------------------------
 r.get("/leaderboard", async (req, res) => {
   const students = await prisma.user.findMany({
     where: { role: "STUDENT" },
     include: { attendances: { orderBy: { markedAt: "desc" }, include: { session: true } } },
   });
 
+  // Helper: calculate consecutive-day streak from attendance dates
   function calcStreak(attendances) {
     if (!attendances.length) return 0;
     const dates = [...new Set(attendances.map((a) => a.markedAt.toISOString().slice(0, 10)))].sort((a, b) => b.localeCompare(a));
@@ -507,6 +600,10 @@ r.get("/leaderboard", async (req, res) => {
   res.json(ranked);
 });
 
+// --------------------------------------------------
+// GET /goals – Student's attendance goals per subject
+// Calculates current attendance %, and how many more classes needed to reach 75%
+// --------------------------------------------------
 r.get("/goals", async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
   if (!user) return res.json([]);
@@ -529,6 +626,9 @@ r.get("/goals", async (req, res) => {
   res.json(goals);
 });
 
+// --------------------------------------------------
+// GET /classes/:id – Get a single class by ID with timetable and sessions
+// --------------------------------------------------
 r.get("/classes/:id", async (req, res) => {
   const cls = await prisma.class.findUnique({
     where: { id: req.params.id },

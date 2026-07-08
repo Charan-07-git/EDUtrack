@@ -1,10 +1,21 @@
 'use client';
+
+// ─── Shell: Main Page Layout / Wrapper ────────────────────────────────────────
+// Renders the sidebar, top header bar (with hamburger menu, dark-mode toggle,
+// notification bell, and settings), and the page content. Every teacher and
+// student page is wrapped inside this component.
+// ──────────────────────────────────────────────────────────────────────────────
+
 import Sidebar from './Sidebar';
 import Link from 'next/link';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '@/lib/api';
 
+// ─── timeAgo() ───────────────────────────────────────────────────────────────
+// Converts a server timestamp string (ISO) into a human-readable relative time
+// string (e.g. "5m ago", "2h ago", "3d ago"). Falls back to a date string for
+// anything older than 7 days.
 function timeAgo(date: string): string {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
@@ -17,6 +28,11 @@ function timeAgo(date: string): string {
   return new Date(date).toLocaleDateString();
 }
 
+// ─── Shell Props ─────────────────────────────────────────────────────────────
+// - role:     Determines sidebar links and notification page links.
+// - children: The page content rendered in the main content area.
+// - title:    Page heading displayed in the top bar.
+// - header:   Optional full custom header (replaces title + action buttons).
 export default function Shell({
   role,
   children,
@@ -28,15 +44,30 @@ export default function Shell({
   title: string;
   header?: React.ReactNode;
 }) {
+  // Dark mode state + toggle function from DarkModeContext
   const { dark, toggle } = useDarkMode();
+  // Link target for the "View all announcements" footer
   const notifHref = role === 'teacher' ? '/teacher/announcements' : '/student/announcements';
+
+  // ─── State Variables ────────────────────────────────────────────────────────
+  // unread:        Number of unread notifications (shown as a badge on the bell).
+  // notifications: Array of notification objects fetched when dropdown opens.
+  // open:          Whether the notification dropdown is currently visible.
+  // loadingNotifs: True while notifications are being fetched.
+  // sidebarOpen:   Controls sidebar visibility (toggle/overlay).
   const [unread, setUnread] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // sidebarOpen: Controls sidebar visibility on all screen sizes.
+  // Starts true (open) on desktop so the sidebar is visible by default.
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Ref to the dropdown container for detecting outside clicks.
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // ─── fetchUnread() ──────────────────────────────────────────────────────────
+  // Calls GET /api/notifications/unread-count to get the current unread count.
+  // Memoised with useCallback so the polling interval can safely reference it.
   const fetchUnread = useCallback(async () => {
     try {
       const d = await api('/api/notifications/unread-count');
@@ -44,6 +75,9 @@ export default function Shell({
     } catch {}
   }, []);
 
+  // ─── fetchNotifications() ───────────────────────────────────────────────────
+  // Calls GET /api/notifications?limit=10 to load the most recent notifications.
+  // Called when the dropdown opens. Memoised with useCallback.
   const fetchNotifications = useCallback(async () => {
     setLoadingNotifs(true);
     try {
@@ -53,12 +87,21 @@ export default function Shell({
     setLoadingNotifs(false);
   }, []);
 
+  // ─── Polling Effect ────────────────────────────────────────────────────────
+  // Fetches the unread count immediately on mount, then polls every 30 seconds
+  // to keep the badge count up-to-date. Cleans up the interval on unmount.
   useEffect(() => {
     fetchUnread();
     const id = setInterval(fetchUnread, 30000);
     return () => clearInterval(id);
   }, [fetchUnread]);
 
+  // ─── Dropdown Open/Close Effect ────────────────────────────────────────────
+  // When the notification dropdown opens:
+  //   - Fetch the latest notifications from the server.
+  //   - Add a global mousedown listener to detect clicks outside the dropdown
+  //     and close it (click-outside pattern).
+  // Cleans up the event listener when dropdown closes or component unmounts.
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -72,18 +115,25 @@ export default function Shell({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open, fetchNotifications]);
 
+  // ─── markRead() ─────────────────────────────────────────────────────────────
+  // Marks a single notification as read via PUT /api/notifications/:id/read.
+  // Optimistically updates local state: sets isRead to true and decrements unread.
   async function markRead(id: string) {
     await api(`/api/notifications/${id}/read`, { method: 'PUT' });
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     setUnread((prev) => Math.max(0, prev - 1));
   }
 
+  // ─── markAllRead() ──────────────────────────────────────────────────────────
+  // Marks all notifications as read via PUT /api/notifications/read-all.
+  // Updates local state: every notification is set to isRead=true and unread goes to 0.
   async function markAllRead() {
     await api('/api/notifications/read-all', { method: 'PUT' });
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnread(0);
   }
 
+  // ─── Notification Bell + Dropdown (notifBadge) ─────────────────────────────
   const notifBadge = (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -163,21 +213,36 @@ export default function Shell({
     </div>
   );
 
+  // ─── Main Layout ────────────────────────────────────────────────────────────
+  // Structure:
+  //   <main>               → full-page wrapper with light/dark background
+  //     <Sidebar>          → fixed navigation sidebar (role-aware)
+  //     <section>          → content area (offset by sidebar width when open)
+  //       {header ?? ...}  → default header with hamburger, title, dark-mode toggle,
+  //                          notifications bell, and settings link
+  //                          OR a custom header if provided via props
+  //       {children}       → the actual page content rendered here
   return (
     <main className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A]">
       <Sidebar role={role} sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />
-      <section className="lg:ml-72 min-h-screen p-4 pt-20 lg:p-8 lg:pt-8">
+      <section className={`${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'} min-h-screen p-4 pt-20 lg:p-8 lg:pt-8 transition-all duration-300`}>
         {header ?? (
           <div className="flex items-center justify-between mb-4 lg:mb-6">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300"
-                aria-label="Open sidebar"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300"
+                aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                </svg>
+                {sidebarOpen ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                  </svg>
+                )}
               </button>
               <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h1>
             </div>

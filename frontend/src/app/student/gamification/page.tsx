@@ -6,20 +6,28 @@ import { api } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
+// Page component: displays a leaderboard with a podium for top 3 and full rankings list
 export default function Page() {
+  // Stores all leaderboard entries fetched from the API
   const [rows, setRows] = useState<any[]>([]);
   const { user } = useAuth();
 
+  // On mount, fetch the leaderboard data
   useEffect(() => {
     api('/api/leaderboard').then(setRows).catch(() => {});
   }, []);
 
+  // Check if the current user appears on the leaderboard at all
   const isOnLeaderboard = rows.some((r) => r.name === user?.name);
+  // Find the current user's rank (1-based index), or 0 if not on the board
   const userRank = isOnLeaderboard ? rows.findIndex((r) => r.name === user?.name) + 1 : 0;
+  // Get the current user's streak value
   const userStreak = rows.find((r) => r.name === user?.name)?.streak || 0;
 
+  // Reorder rows so the podium displays as: [2nd, 1st, 3rd] for visual layout
   const podiumOrder = rows.length >= 3 ? [rows[1], rows[0], rows[2]] : rows;
 
+  // Visual configuration for each podium position: emoji, gradient, bar height, shadow
   const podiumData: Record<number, { emoji: string; gradient: string; height: string; shadow: string }> = {
     1: { emoji: '🥇', gradient: 'bg-gradient-to-t from-amber-500 to-yellow-400', height: '200px', shadow: 'shadow-amber-500/30' },
     2: { emoji: '🥈', gradient: 'bg-gradient-to-t from-slate-400 to-slate-300', height: '160px', shadow: 'shadow-slate-400/30' },
@@ -30,7 +38,7 @@ export default function Page() {
     <Shell role="student" title="Leaderboard">
       <BackButton href="/student/dashboard" label="Back to Dashboard" />
       <div className="max-w-4xl mx-auto">
-        {/* Header Stats */}
+        {/* Header section with gradient background showing the user's rank and streak */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 rounded-2xl p-6 shadow-xl mb-8 text-white" style={{ animation: 'fadeDown 0.5s ease-out' }}>
           <div className="flex items-center justify-between">
             <div>
@@ -38,12 +46,14 @@ export default function Page() {
               <p className="text-slate-300 text-sm mt-1">Top performing students by attendance</p>
             </div>
             <div className="flex gap-4">
+              {/* Show the user's rank only if they are on the leaderboard */}
               {isOnLeaderboard && (
                 <div className="bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm text-center">
                   <p className="text-xs text-slate-300 uppercase tracking-wide">Your Rank</p>
                   <p className="text-2xl font-extrabold">#{userRank}</p>
                 </div>
               )}
+              {/* Always show the user's streak */}
               <div className="bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm text-center">
                 <p className="text-xs text-slate-300 uppercase tracking-wide">Streak</p>
                 <p className="text-2xl font-extrabold">🔥 {userStreak}</p>
@@ -52,10 +62,10 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Podium */}
+        {/* Podium section: displays 2nd, 1st, 3rd place as vertical bars with emoji and info */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-md border border-slate-100 dark:border-slate-700 mb-6" style={{ animation: 'fadeUp 0.5s ease-out 0.2s both' }}>
           <div className="flex items-end justify-center gap-4 mb-8">
-            {/* 2nd Place */}
+            {/* 2nd Place — rendered first so it appears to the left of 1st */}
             {podiumOrder[0] && (
               <div className="flex flex-col items-center w-1/3" style={{ animation: `podiumIn 0.6s ease-out 0.3s both` }}>
                 <div className={`w-full rounded-t-xl rounded-b-xl ${podiumData[2].gradient} shadow-lg ${podiumData[2].shadow} flex flex-col items-center justify-center text-white px-3`} style={{ height: podiumData[2].height }}>
@@ -67,7 +77,7 @@ export default function Page() {
               </div>
             )}
 
-            {/* 1st Place */}
+            {/* 1st Place — centered and tallest */}
             {podiumOrder[1] && (
               <div className="flex flex-col items-center w-1/3" style={{ animation: `podiumIn 0.6s ease-out both` }}>
                 <div className={`w-full rounded-xl ${podiumData[1].gradient} shadow-xl ${podiumData[1].shadow} flex flex-col items-center justify-center text-white px-3`} style={{ height: podiumData[1].height }}>
@@ -79,7 +89,7 @@ export default function Page() {
               </div>
             )}
 
-            {/* 3rd Place */}
+            {/* 3rd Place — rightmost and shortest */}
             {podiumOrder[2] && (
               <div className="flex flex-col items-center w-1/3" style={{ animation: `podiumIn 0.6s ease-out 0.5s both` }}>
                 <div className={`w-full rounded-t-xl rounded-b-xl ${podiumData[3].gradient} shadow-lg ${podiumData[3].shadow} flex flex-col items-center justify-center text-white px-3`} style={{ height: podiumData[3].height }}>
@@ -92,18 +102,21 @@ export default function Page() {
             )}
           </div>
 
-          {/* Full Rankings */}
+          {/* Full Rankings list below the podium */}
           <div className="space-y-2 mt-6">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">All Rankings</h3>
             {rows.map((r: any, i: number) => (
               <div
                 key={i}
+                // Highlight the current user's row with a blue background and border
                 className={`flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${
                   r.name === user?.name ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800' : 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
+                // Staggered animation: each item fades in with a small delay based on its index
                 style={{ animation: `fadeUp 0.3s ease-out ${i * 50}ms both` }}
               >
                 <div className="flex items-center gap-3">
+                  {/* Rank number badge: gold/silver/bronze for top 3, gray for others */}
                   <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
                     i === 0 ? 'bg-amber-500 text-white' : i === 1 ? 'bg-slate-400 text-white' : i === 2 ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'
                   }`}>
@@ -116,6 +129,7 @@ export default function Page() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-xs font-medium text-slate-500">🔥 {r.streak || 0}</span>
+                  {/* Score badge color-coded: green >=80, blue >=60, orange <60 */}
                   <span className={`text-sm font-bold px-3 py-1 rounded-full ${
                     r.score >= 80 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : r.score >= 60 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
                   }`}>
@@ -128,6 +142,7 @@ export default function Page() {
         </div>
       </div>
 
+      {/* Keyframe animations used throughout this page */}
       <style>{`
         @keyframes podiumIn {
           from { opacity: 0; transform: translateY(30px); }

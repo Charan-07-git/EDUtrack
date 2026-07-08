@@ -4,6 +4,7 @@ import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
 import { useEffect, useState } from 'react';
 
+// The 8 one-hour time slots for the timetable grid, from 9 AM to 5 PM
 const TIME_SLOTS = [
   { label: '09:00 - 10:00', startHour: 9 },
   { label: '10:00 - 11:00', startHour: 10 },
@@ -15,8 +16,10 @@ const TIME_SLOTS = [
   { label: '16:00 - 17:00', startHour: 16 },
 ];
 
+// The 5 weekdays shown in the timetable
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
+// Background gradient classes used for regular (lecture) subject cards
 const GRADIENTS = [
   'from-blue-500 to-blue-600 shadow-blue-500/30',
   'from-purple-500 to-purple-600 shadow-purple-500/30',
@@ -30,6 +33,7 @@ const GRADIENTS = [
   'from-indigo-500 to-indigo-600 shadow-indigo-500/30',
 ];
 
+// Background gradient classes for lab batch cards (fewer variations)
 const LAB_GRADIENTS = [
   'from-orange-400 to-orange-500 shadow-orange-500/30',
   'from-lime-500 to-lime-600 shadow-lime-500/30',
@@ -37,31 +41,42 @@ const LAB_GRADIENTS = [
   'from-fuchsia-500 to-fuchsia-600 shadow-fuchsia-500/30',
 ];
 
+// Cache that maps subject codes to a fixed gradient, so the same code always gets the same color
 const GRADIENT_MAP: Record<string, string> = {};
 
+// Returns a gradient for a given subject code; caches it on first call
 function getGradient(code: string): string {
   if (!GRADIENT_MAP[code]) {
+    // Assign the next unused gradient (cycle through the array)
     GRADIENT_MAP[code] = GRADIENTS[Object.keys(GRADIENT_MAP).length % GRADIENTS.length];
   }
   return GRADIENT_MAP[code];
 }
 
+// Returns a gradient for a lab batch by converting its Roman numeral to a numeric index
 function getLabGradient(batch: string): string {
   const idx = parseInt(batch.replace(/[IV]+/, (m) => String(' IVX'.indexOf(m))) || '1') - 1;
   return LAB_GRADIENTS[idx % LAB_GRADIENTS.length];
 }
 
+// Converts a number (1-8) to its Roman numeral representation (I-VIII)
 function romanize(n: number): string {
   const map: Record<number, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII' };
   return map[n] || String(n);
 }
 
+// Page component: lets a teacher browse the master timetable for any semester
 export default function Page() {
+  // Stores the full master timetable data for the selected semester
   const [master, setMaster] = useState<any>(null);
+  // Whether the timetable API call has completed
   const [loaded, setLoaded] = useState(false);
+  // List of available semesters fetched from the API
   const [semesters, setSemesters] = useState<any[]>([]);
+  // The currently selected semester number in the dropdown
   const [selectedSem, setSelectedSem] = useState<number | null>(null);
 
+  // On mount, fetch the list of available semesters and auto-select the first one
   useEffect(() => {
     api('/api/timetable/semesters').then((d: any[]) => {
       setSemesters(d);
@@ -71,6 +86,7 @@ export default function Page() {
     }).catch(() => {});
   }, []);
 
+  // When the selected semester changes, fetch its master timetable
   useEffect(() => {
     if (!selectedSem) return;
     setLoaded(false);
@@ -81,6 +97,8 @@ export default function Page() {
     }).catch(() => setLoaded(true));
   }, [selectedSem]);
 
+  // Finds the timetable entry for a given day and time slot index.
+  // Checks if the entry's time range overlaps with the slot's hour.
   function getEntry(day: string, slotIndex: number) {
     if (!master?.timetable) return null;
     const dayData = master.timetable[day];
@@ -94,12 +112,14 @@ export default function Page() {
     }) || null;
   }
 
+  // Teacher view starts from the 2nd slot (10:00) — skip the 9:00 slot
   const timeSlots2To8 = TIME_SLOTS.slice(1);
 
   return (
     <Shell role="teacher" title="Classes & Timetable">
       <BackButton href="/teacher/dashboard" label="Back to Dashboard" />
 
+      {/* Semester selector dropdown card */}
       <div className="mt-6 mb-6">
         <div className="card">
           <div className="flex flex-wrap items-center gap-4">
@@ -115,6 +135,7 @@ export default function Page() {
                   <option key={s.semester} value={s.semester}>Semester {s.semester} ({romanize(s.semester)})</option>
                 ))}
               </select>
+              {/* Dropdown chevron icon */}
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -126,24 +147,29 @@ export default function Page() {
         </div>
       </div>
 
+      {/* Conditional rendering: semester not chosen yet */}
       {!selectedSem ? (
         <div className="card text-center py-16">
           <span className="text-5xl mb-4 block">👆</span>
           <p className="text-lg font-semibold text-slate-300">Select a semester above</p>
         </div>
       ) : !loaded ? (
+        /* Spinner while timetable is loading */
         <div className="card text-center py-16">
           <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
           <p className="mt-4 text-muted">Loading timetable...</p>
         </div>
       ) : !master ? (
+        /* Fallback when no timetable data exists for the selected semester */
         <div className="card text-center py-16">
           <span className="text-5xl mb-4 block">📋</span>
           <p className="text-lg font-semibold text-slate-300">Timetable not available</p>
           <p className="text-muted mt-2">The master timetable has not been loaded yet</p>
         </div>
       ) : (<>
+      {/* Timetable table wrapped in a card */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700 p-4 lg:p-6 overflow-auto" style={{ animation: 'fadeUp 0.5s ease-out' }}>
+        {/* Header with class info, department, semester number, academic year, and room */}
         <div className="flex items-center gap-3 mb-6">
           <img src="/logo.svg" alt="Logo" className="w-10 h-10" />
           <div>
@@ -152,6 +178,7 @@ export default function Page() {
           </div>
         </div>
 
+        {/* Timetable grid: rows = time slots (starting from 10:00), columns = days */}
         <table className="w-full border-collapse min-w-[700px] rounded-xl overflow-hidden text-xs">
           <thead>
             <tr>
@@ -164,15 +191,19 @@ export default function Page() {
           <tbody>
             {timeSlots2To8.map((slot, i) => (
               <tr key={i}>
+                {/* Time label for this row */}
                 <td className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-2 py-2 text-[11px] font-semibold text-slate-400 text-center whitespace-nowrap">
                   {slot.label}
                 </td>
+                {/* For each day, look up the entry that falls in this time slot */}
                 {DAYS.map((day) => {
                   const entry = getEntry(day, i + 1);
                   if (!entry) {
+                    // Empty slot: render an empty cell
                     return <td key={day} className="border-b border-l border-slate-50 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30"></td>;
                   }
                   if (entry.type === 'Lab' && entry.labs) {
+                    // Lab entry: display each lab batch as a separate card inside the cell
                     return (
                       <td key={day} className="border-b border-l border-slate-50 dark:border-slate-700 p-1 align-top">
                         <div className="flex flex-col gap-1">
@@ -191,6 +222,7 @@ export default function Page() {
                       </td>
                     );
                   }
+                  // Regular lecture entry: show subject code and faculty initials in a gradient card
                   const code = entry.code || entry.subject.slice(0, 4).toUpperCase();
                   const initials = entry.faculty?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || 'T';
                   return (
@@ -208,6 +240,7 @@ export default function Page() {
         </table>
       </div>
 
+      {/* Footer row: subject code badges with matching gradients */}
       <div className="mt-4 flex flex-wrap gap-1.5" style={{ animation: 'fadeUp 0.5s ease-out 0.3s both' }}>
         {master.subjects && Object.entries(master.subjects).map(([code, name]: any) => (
           <div key={code} className={`rounded-lg bg-gradient-to-br ${getGradient(code)} px-2.5 py-1 text-[11px] font-semibold text-white shadow-md`}>
@@ -216,6 +249,7 @@ export default function Page() {
         ))}
       </div>
 
+      {/* Keyframe animations used in this page */}
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>

@@ -1,3 +1,9 @@
+// ============================================================
+// Timetable Routes – department timetable, faculty subjects,
+// master timetable data, and timetable CRUD.
+// All routes require JWT authentication.
+// ============================================================
+
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { auth } from "../middleware/auth.js";
@@ -5,6 +11,10 @@ import { auth } from "../middleware/auth.js";
 const r = Router();
 r.use(auth);
 
+// --------------------------------------------------
+// GET /by-department – Get classes (with timetables) filtered by
+// department and/or semester for the logged-in teacher
+// --------------------------------------------------
 r.get("/by-department", async (req, res) => {
   const { department, semester } = req.query;
   const where = { teacherId: req.user.id };
@@ -18,6 +28,10 @@ r.get("/by-department", async (req, res) => {
   res.json(classes);
 });
 
+// --------------------------------------------------
+// GET /departments – Get distinct department/semester combos
+// Falls back to timetable-data.json if no classes exist yet
+// --------------------------------------------------
 r.get("/departments", async (req, res) => {
   const dbClasses = await prisma.class.findMany({
     where: { teacherId: req.user.id },
@@ -36,6 +50,11 @@ r.get("/departments", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// POST /bulk – Replace all timetable entries for a class
+// Body: { classId, entries: [{ dayOfWeek, startTime, endTime, room }] }
+// Deletes existing entries first, then creates new ones
+// --------------------------------------------------
 r.post("/bulk", async (req, res) => {
   const { classId, entries } = req.body;
   const classData = await prisma.class.findUnique({ where: { id: classId } });
@@ -58,6 +77,10 @@ r.post("/bulk", async (req, res) => {
   res.json(updated);
 });
 
+// --------------------------------------------------
+// GET /semesters – List all semesters from the master timetable JSON
+// Returns year, class name, subjects, and faculty info per semester
+// --------------------------------------------------
 r.get("/semesters", async (_req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
@@ -75,6 +98,11 @@ r.get("/semesters", async (_req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /by-faculty – Get subjects assigned to a faculty member
+// Query: ?code=XXXXX
+// Searches timetable data for lectures and labs matching the faculty code
+// --------------------------------------------------
 r.get("/by-faculty", async (req, res) => {
   try {
     const { code } = req.query;
@@ -89,10 +117,12 @@ r.get("/by-faculty", async (req, res) => {
         for (const slot of slots) {
           let matches = false;
           let matchedCode = null;
+          // Check lecture slot
           if (slot.facultyCode === code || (slot.facultyCode && slot.facultyCode.split(" / ").includes(code))) {
             matches = true;
             matchedCode = slot.code;
           }
+          // Check lab slots within the lecture
           if (slot.labs) {
             for (const lab of slot.labs) {
               if (lab.facultyCode === code || (lab.facultyCode && lab.facultyCode.split(" / ").includes(code))) {
@@ -117,11 +147,18 @@ r.get("/by-faculty", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// Helper: extract title prefix from a faculty name (Dr., Prof., etc.)
+// --------------------------------------------------
 function extractPrefix(name) {
   const match = name.match(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s/);
   return match ? match[1] : "";
 }
 
+// --------------------------------------------------
+// GET /faculty-codes – Get all unique faculty codes with names and prefixes
+// Parses timetable-data.json for all lecture and lab faculty entries
+// --------------------------------------------------
 r.get("/faculty-codes", async (_req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
@@ -151,6 +188,10 @@ r.get("/faculty-codes", async (_req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /available-subjects – List all subjects from the master timetable
+// Optional query param: ?semester=N to filter by semester
+// --------------------------------------------------
 r.get("/available-subjects", async (req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
@@ -171,6 +212,10 @@ r.get("/available-subjects", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// GET /master – Get the full master timetable or a specific semester
+// Query: ?semester=N to get timetable for one semester only
+// --------------------------------------------------
 r.get("/master", async (req, res) => {
   try {
     const data = await import("../../prisma/timetable-data.json", { with: { type: "json" } });
@@ -191,6 +236,10 @@ r.get("/master", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// DELETE /:id – Delete a single timetable entry
+// Verifies the teacher owns the parent class
+// --------------------------------------------------
 r.delete("/:id", async (req, res) => {
   const entry = await prisma.timetable.findUnique({
     where: { id: req.params.id },

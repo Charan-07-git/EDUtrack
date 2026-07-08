@@ -1,41 +1,62 @@
 'use client';
 
+// Import shared UI components
 import Shell from '@/components/Shell';
 import BackButton from '@/components/BackButton';
+// Import API helper function and server URL
 import { api, API } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
+// Library for scanning QR codes from camera
 import { Html5Qrcode } from 'html5-qrcode';
 
+// The different screens (steps) in the attendance flow, one at a time
 type Step = 'scan' | 'camera' | 'captured' | 'validating' | 'confirm' | 'saving' | 'success' | 'error';
 
+// Fixed campus centre coordinates (used to check if the student is nearby)
 const CAMPUS_LAT = Number(process.env.NEXT_PUBLIC_CAMPUS_LAT) || 17.411;
 const CAMPUS_LNG = Number(process.env.NEXT_PUBLIC_CAMPUS_LNG) || 78.529;
+// Maximum allowed distance from campus in metres (3 km)
 const MAX_DISTANCE = 3000;
 
+// Haversine formula: calculates the great-circle distance in metres between two lat/lng points
 function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number) {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371000; // Earth radius in metres
+  const toRad = (d: number) => (d * Math.PI) / 180; // Convert degrees to radians
   const dLat = toRad(bLat - aLat);
   const dLng = toRad(bLng - aLng);
+  // Haversine formula
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
 export default function Page({ params }: { params: { id: string } }) {
   const { id } = params;
+
+  // State machine: which step of the flow is currently shown
   const [step, setStep] = useState<Step>('scan');
+  // Message to display on screen (status / instructions)
   const [msg, setMsg] = useState('Point camera at the QR code');
+  // Decoded QR payload: session ID and security token
   const [payload, setPayload] = useState<{ sessionId: string; token: string } | null>(null);
+  // Student's GPS coordinates obtained during location validation
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // Session expiry timestamp in ms (used to reject expired QR codes)
   const [qrExpiresAt, setQrExpiresAt] = useState<number | null>(null);
+  // Text of the validation error if location or expiry check fails
   const [validationError, setValidationError] = useState('');
+  // Refs to DOM elements for the selfie camera
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // The active camera stream (so we can stop it later)
   const streamRef = useRef<MediaStream | null>(null);
+  // Captured selfie stored as a base64 data URI
   const photoRef = useRef<string | null>(null);
+  // The Html5Qrcode scanner instance (for starting/stopping)
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  // Whether the QR camera is currently active
   const [scanning, setScanning] = useState(false);
 
+  // On mount, fetch the session to read the expiry time
   useEffect(() => {
     if (id) {
       api(`/api/sessions/${id}`).then((session: any) => {
@@ -46,6 +67,8 @@ export default function Page({ params }: { params: { id: string } }) {
     }
   }, [id]);
 
+  // Called when the QR scanner successfully reads a code
+  // Stops the scanner, parses JSON, and moves to the camera step
   function onQrScanned(decoded: string) {
     stopScanner();
     try {
@@ -60,16 +83,19 @@ export default function Page({ params }: { params: { id: string } }) {
     }
   }
 
+  // Create the Html5Qrcode instance when we enter the "scan" step
   useEffect(() => {
     if (step === 'scan') {
       const scanner = new Html5Qrcode('qr-reader');
       scannerRef.current = scanner;
     }
+    // Cleanup: stop the scanner when leaving this step or unmounting
     return () => {
       stopScanner();
     };
   }, [step]);
 
+  // Activate the QR scanner: enumerate cameras, pick the back camera, start scanning
   async function openScanner() {
     const scanner = scannerRef.current;
     if (!scanner) return;
@@ -77,13 +103,14 @@ export default function Page({ params }: { params: { id: string } }) {
     setMsg('Opening camera...');
     try {
       const cameras = await Html5Qrcode.getCameras();
+      // Prefer back-facing camera, fall back to the first available
       const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment')) || cameras[0];
       if (!backCam) throw new Error('No camera found');
       await scanner.start(
         { deviceId: backCam.id },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        onQrScanned,
-        () => {}
+        onQrScanned,   // callback when a QR is decoded
+        () => {}        // ignored – non-decode frames
       );
       setMsg('Point camera at the QR code');
     } catch (e: any) {
@@ -93,6 +120,7 @@ export default function Page({ params }: { params: { id: string } }) {
     }
   }
 
+  // Stop the QR scanner if it is running
   function stopScanner() {
     setScanning(false);
     const sc = scannerRef.current;
@@ -101,12 +129,14 @@ export default function Page({ params }: { params: { id: string } }) {
     }
   }
 
+  // Automatically stop scanner when we navigate away from the scan step
   useEffect(() => {
     if (step !== 'scan') {
       stopScanner();
     }
   }, [step]);
 
+  // When the "camera" step is entered, open the front-facing camera for selfie capture
   useEffect(() => {
     if (step !== 'camera') return;
     let cancelled = false;
@@ -127,6 +157,7 @@ export default function Page({ params }: { params: { id: string } }) {
         }
       }
     })();
+    // Cleanup: stop the camera stream when leaving the camera step
     return () => {
       cancelled = true;
       if (streamRef.current) {
@@ -136,6 +167,7 @@ export default function Page({ params }: { params: { id: string } }) {
     };
   }, [step]);
 
+  // Capture a single frame from the video feed, save it as a JPEG data URI
   function capturePhoto() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -154,6 +186,7 @@ export default function Page({ params }: { params: { id: string } }) {
     }
     ctx.drawImage(video, 0, 0);
     photoRef.current = canvas.toDataURL('image/jpeg', 0.7);
+    // Stop the camera immediately after capture
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
@@ -162,17 +195,20 @@ export default function Page({ params }: { params: { id: string } }) {
     setMsg('Photo captured');
   }
 
+  // Allow the student to retake their selfie (goes back to camera step)
   function retakePhoto() {
     photoRef.current = null;
     setStep('camera');
     setMsg('Capturing photo...');
   }
 
+  // Validate session expiry and GPS location before allowing confirmation
   async function handleDone() {
     setStep('validating');
     setMsg('Validating location and timestamp...');
     setValidationError('');
 
+    // Check if the QR session has expired
     const qrExpiry = qrExpiresAt || Date.now() + 5 * 60 * 1000;
     if (Date.now() > qrExpiry) {
       setValidationError('Attendance session expired. Please scan a new QR code.');
@@ -182,6 +218,7 @@ export default function Page({ params }: { params: { id: string } }) {
     }
 
     try {
+      // Request GPS position from the browser
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
       });
@@ -189,6 +226,7 @@ export default function Page({ params }: { params: { id: string } }) {
       const lng = pos.coords.longitude;
       setCoords({ lat, lng });
 
+      // Calculate distance from campus; reject if too far
       const d = distanceMeters(lat, lng, CAMPUS_LAT, CAMPUS_LNG);
       if (d > MAX_DISTANCE) {
         setValidationError(`Location mismatch. You are ${Math.round(d)}m from campus (max ${MAX_DISTANCE}m).`);
@@ -197,6 +235,7 @@ export default function Page({ params }: { params: { id: string } }) {
         return;
       }
 
+      // All checks passed — show confirm screen
       setStep('confirm');
       setMsg('Validation passed. Confirm to mark attendance.');
     } catch (e: any) {
@@ -206,6 +245,7 @@ export default function Page({ params }: { params: { id: string } }) {
     }
   }
 
+  // Submit attendance to the server: POST sessionId, token, photo, and optional location
   async function confirmAttendance() {
     setStep('saving');
     setMsg('Saving attendance...');
@@ -239,7 +279,7 @@ export default function Page({ params }: { params: { id: string } }) {
   return (
     <Shell role="student" title="Mark Attendance">
       <div className="max-w-lg mx-auto">
-        {/* Step indicator */}
+        {/* Step indicator — shows QR → Photo → Review → Done progress */}
         {step !== 'success' && step !== 'error' && (
           <div className="flex items-center justify-center gap-1 mb-6">
             {['scan', 'camera', 'captured', 'confirm'].map((s, i) => {
@@ -263,6 +303,7 @@ export default function Page({ params }: { params: { id: string } }) {
                     }`}>{active && !isCurrent ? '✓' : currentStepIdx + 1}</span>
                     {labels[s] || s}
                   </div>
+                  {/* Connector line between steps */}
                   {currentStepIdx < 3 && (
                     <div className={`w-6 h-0.5 rounded ${active && currentStepIdx < stepIdx ? 'bg-blue-500' : 'bg-slate-200 dark:bg-slate-700'}`} />
                   )}
@@ -272,7 +313,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Scan QR */}
+        {/* Scan QR — shows the QR reader viewfinder and Start/Stop buttons */}
         {step === 'scan' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-5 text-center">
@@ -307,7 +348,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Camera - Capture photo */}
+        {/* Camera — Capture photo: shows a front-facing camera viewfinder with a capture button */}
         {step === 'camera' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center justify-center gap-2">
@@ -328,7 +369,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Captured - Show photo + Done button */}
+        {/* Captured — Review photo and confirm to proceed with validation */}
         {step === 'captured' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-center gap-2">
@@ -354,7 +395,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Validating */}
+        {/* Validating — Spinner shown while location + session expiry are checked */}
         {step === 'validating' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="w-20 h-20 mx-auto mb-5 relative">
@@ -371,7 +412,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Confirm to Mark Attendance */}
+        {/* Confirm — Shows the photo + coordinates and lets the student confirm attendance */}
         {step === 'confirm' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden" style={{ animation: 'scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 text-center">
@@ -401,7 +442,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Saving */}
+        {/* Saving — Spinner shown while the POST request is in flight */}
         {step === 'saving' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center" style={{ animation: 'fadeUp 0.4s ease-out' }}>
             <div className="w-20 h-20 mx-auto mb-5 relative">
@@ -422,7 +463,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Success */}
+        {/* Success — Attendance was recorded successfully */}
         {step === 'success' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center" style={{ animation: 'scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
             <div className="w-24 h-24 mx-auto mb-5">
@@ -443,7 +484,7 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Error */}
+        {/* Error — Displays failure message with retry and back options */}
         {step === 'error' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center" style={{ animation: 'shake 0.5s ease-out' }}>
             <div className="w-24 h-24 mx-auto mb-5">

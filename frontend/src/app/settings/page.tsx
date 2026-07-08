@@ -6,6 +6,13 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
+/**
+ * Settings page — lets the user edit their profile, set academic year/semester,
+ * change password, upload a profile photo, register face photos for attendance,
+ * and delete their account.
+ */
+
+// Maps academic year (1-4) to the semester numbers that belong to that year
 const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   1: [1, 2],
   2: [3, 4],
@@ -13,39 +20,61 @@ const YEAR_SEMESTER_MAP: Record<number, number[]> = {
   4: [7, 8],
 };
 
+// Currently only CSE is available as a department
 const DEPARTMENTS = ["CSE"];
 
 export default function Page() {
+  // User object and logout function from AuthContext
   const { user, logout } = useAuth();
+
+  // ── Profile Information fields ──
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
+
+  // ── Academic Setup fields ──
   const [semester, setSemester] = useState(5);
   const [year, setYear] = useState<number>(3);
-  const [subject, setSubject] = useState('');
-  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [subject, setSubject] = useState('');             // selected subject code (teacher)
+  const [subjects, setSubjects] = useState<Record<string, string>>({}); // available subjects from API
+
+  // ── Change Password fields ──
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // ── Saving / loading states ──
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAcademic, setSavingAcademic] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // ── Feedback messages (one per section) ──
   const [profileMsg, setProfileMsg] = useState('');
   const [academicMsg, setAcademicMsg] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
+
+  // ── Profile photo ──
   const [uploading, setUploading] = useState(false);
+
+  // ── Delete account ──
   const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(''); // must type "DELETE" to confirm
+
+  // ── Face registration (student only) ──
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [facePhotos, setFacePhotos] = useState<string[]>([]);
+  const [facePhotos, setFacePhotos] = useState<string[]>([]);   // captured data URLs
   const [capturing, setCapturing] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [savingFacePhotos, setSavingFacePhotos] = useState(false);
   const [faceMsg, setFaceMsg] = useState('');
   const router = useRouter();
 
+  /**
+   * Fallback timeout — if user data hasn't loaded after 3 seconds, show an
+   * error message instead of leaving the user staring at a spinner forever.
+   */
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!user) {
@@ -56,6 +85,10 @@ export default function Page() {
     return () => clearTimeout(timer);
   }, [user]);
 
+  /**
+   * Once user data is available, populate all form fields and fetch the list
+   * of available subjects for the current semester from the API.
+   */
   useEffect(() => {
     if (user) {
       setName(user.name || '');
@@ -71,6 +104,10 @@ export default function Page() {
     }
   }, [user]);
 
+  /**
+   * saveProfile — sends name and department to the backend via PUT /api/me.
+   * Called when the user submits the "Profile Information" form.
+   */
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
     setSavingProfile(true);
@@ -87,6 +124,11 @@ export default function Page() {
     setSavingProfile(false);
   }
 
+  /**
+   * saveAcademic — saves semester/year (for students) or selectedSubject
+   * (for teachers) via PUT /api/me. Also syncs the choices to localStorage
+   * so they survive page reloads.
+   */
   async function saveAcademic(e: React.FormEvent) {
     e.preventDefault();
     setSavingAcademic(true);
@@ -116,6 +158,10 @@ export default function Page() {
     setSavingAcademic(false);
   }
 
+  /**
+   * changePassword — validates the three password fields, then sends
+   * currentPassword and newPassword to PUT /api/me/password.
+   */
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordMsg('');
@@ -149,6 +195,12 @@ export default function Page() {
     setSavingPassword(false);
   }
 
+  /**
+   * compressImage — takes a base64 data URL, draws it onto a canvas,
+   * resizes it so the longest side is at most maxW, then exports as JPEG
+   * at the given quality. Returns a Promise that resolves to the compressed
+   * data URL.
+   */
   function compressImage(dataUrl: string, maxW = 400, quality = 0.7): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -166,6 +218,13 @@ export default function Page() {
     });
   }
 
+  /**
+   * handlePhotoUpload — triggered when the user picks a file for their
+   * profile photo. Validates file size (max 10 MB) and type (must be image),
+   * reads it as a data URL, compresses it via compressImage(), then sends it
+   * to POST /api/auth/upload-photo. Reloads the page on success so the new
+   * photo appears everywhere.
+   */
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -194,6 +253,11 @@ export default function Page() {
     } catch { setProfileMsg('Failed to upload'); setUploading(false); }
   }
 
+  /**
+   * deleteAccount — sends DELETE /api/me to remove the user's account,
+   * then calls logout() and redirects to the login page.
+   * Only fires when confirmDelete === "DELETE".
+   */
   async function deleteAccount() {
     if (confirmDelete !== 'DELETE') return;
     setDeleting(true);
@@ -208,6 +272,9 @@ export default function Page() {
     }
   }
 
+  // ── Camera helpers for face registration ──
+
+  /** startCamera — requests the user's front-facing camera and shows the stream in the <video> element. */
   const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -218,6 +285,7 @@ export default function Page() {
     }
   }, []);
 
+  /** stopCamera — stops every track of the active camera stream. */
   const stopCamera = useCallback(() => {
     if (cameraStream) {
       cameraStream.getTracks().forEach(t => t.stop());
@@ -225,10 +293,13 @@ export default function Page() {
     }
   }, [cameraStream]);
 
+  /** Cleanup on unmount: make sure the camera is turned off. */
   useEffect(() => {
     return () => { if (cameraStream) cameraStream.getTracks().forEach(t => t.stop()); };
   }, [cameraStream]);
 
+  /** capturePhoto — draws the current video frame onto the hidden canvas and
+   *  saves the resulting JPEG data URL into the facePhotos array. */
   function capturePhoto() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -242,10 +313,15 @@ export default function Page() {
     setFacePhotos(prev => [...prev, dataUrl]);
   }
 
+  /** retakePhoto — removes a previously captured photo by its index so the user can try again. */
   function retakePhoto(index: number) {
     setFacePhotos(prev => prev.filter((_, i) => i !== index));
   }
 
+  /**
+   * saveFacePhotos — uploads each of the 6 captured face photos to the server one by one,
+   * then saves their URLs via PUT /api/me/face-photos. Stops the camera on success.
+   */
   async function saveFacePhotos() {
     if (facePhotos.length !== 6) return;
     setSavingFacePhotos(true);
@@ -275,6 +351,11 @@ export default function Page() {
     setSavingFacePhotos(false);
   }
 
+  /**
+   * MsgBanner — a small inline component that renders a coloured banner
+   * (green for success, red for error) when `msg` is non-empty.
+   * Checks for the word "success" to decide the colour.
+   */
   function MsgBanner({ msg }: { msg: string }) {
     if (!msg) return null;
     const isSuccess = msg.toLowerCase().includes('success');
@@ -291,13 +372,14 @@ export default function Page() {
 
       <div className="max-w-2xl space-y-6 mt-6">
         {loading ? (
+          // ── Loading spinner ──
           <div className="card text-center py-16">
               <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
             <p className="mt-4 text-muted dark:text-slate-400">Loading settings...</p>
           </div>
         ) : (
           <>
-        {/* Profile Info */}
+        {/* Profile Info — edit name and department */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Profile Information</h3>
           <form onSubmit={saveProfile} className="space-y-4">
@@ -324,13 +406,14 @@ export default function Page() {
           </form>
         </div>
 
-        {/* Academic Setup */}
+        {/* Academic Setup — pick year/semester (student) or subject (teacher) */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.1s both' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Academic Setup</h3>
           <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Select your current academic year and semester. This sets your registered semester across the application.</p>
           <form onSubmit={saveAcademic} className="space-y-6">
             {user?.role === 'STUDENT' && (
               <>
+              {/* Year selector (1-4) */}
               <div>
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 block">Academic Year</label>
                 <div className="grid grid-cols-4 gap-3">
@@ -356,6 +439,7 @@ export default function Page() {
                   ))}
                 </div>
               </div>
+              {/* Semester selector (derived from YEAR_SEMESTER_MAP) */}
               <div>
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 block">Current Semester</label>
                 <div className="flex gap-3">
@@ -426,7 +510,7 @@ export default function Page() {
           </form>
         </div>
 
-        {/* Profile Photo */}
+        {/* Profile Photo — upload a new profile picture */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.2s both' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Profile Photo</h3>
           <div className="flex items-center gap-5">
@@ -447,7 +531,7 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Face Registration (Student only) */}
+        {/* Face Registration (Student only) — capture 6 reference photos via camera for attendance verification */}
         {user?.role === 'STUDENT' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out 0.25s both' }}>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Capture 6 Photos for Reference</h3>
@@ -521,7 +605,7 @@ export default function Page() {
           </div>
         )}
 
-        {/* Delete Account */}
+        {/* Delete Account — dangerous action; user must type "DELETE" to enable the button */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-red-200 dark:border-red-900/50" style={{ animation: 'fadeUp 0.4s ease-out 0.3s both' }}>
           <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">Delete Account</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>

@@ -1,3 +1,9 @@
+// ============================================================
+// Announcement Routes – CRUD for announcements with automatic
+// notification creation for relevant students.
+// All routes require JWT authentication.
+// ============================================================
+
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { auth } from "../middleware/auth.js";
@@ -5,14 +11,22 @@ import { auth } from "../middleware/auth.js";
 const r = Router();
 r.use(auth);
 
+// --------------------------------------------------
+// POST / – Create a new announcement
+// Body: { classId, title, content, expiresAt, expiresInHours, semesters }
+// If no semesters specified, auto-detects from the class.
+// Creates Notification records for all enrolled students.
+// --------------------------------------------------
 r.post("/", async (req, res) => {
   const { classId, title, content, expiresAt, expiresInHours, semesters } = req.body;
   let sem = semesters;
   let cls;
+  // Auto-detect target semesters from class if not provided
   if (!sem && classId) {
     cls = await prisma.class.findUnique({ where: { id: classId }, select: { semester: true, department: true, subject: true, code: true } });
     if (cls) sem = [cls.semester];
   }
+  // Calculate expiry: either specific date or hours from now
   const exp = expiresAt
     ? new Date(expiresAt)
     : expiresInHours
@@ -29,6 +43,7 @@ r.post("/", async (req, res) => {
     },
     include: { class: { select: { subject: true, code: true } } },
   });
+  // Create notifications for all students in the target department/semesters
   if (cls && sem && sem.length > 0) {
     try {
       const students = await prisma.user.findMany({
@@ -56,6 +71,12 @@ r.post("/", async (req, res) => {
   res.json(ann);
 });
 
+// --------------------------------------------------
+// GET / – List announcements for the current user
+// Teachers: see their own non-expired announcements
+// Students: see announcements for their classes that haven't expired,
+//            filtered by their semester if semesters field is set
+// --------------------------------------------------
 r.get("/", async (req, res) => {
   try {
     const dbUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, department: true, semester: true } });
@@ -68,6 +89,7 @@ r.get("/", async (req, res) => {
       });
       return res.json(announcements);
     }
+    // Students: find announcements for their enrolled classes
     const classes = await prisma.class.findMany({
       where: { department: dbUser.department, semester: dbUser.semester },
       select: { id: true, subject: true, code: true },
@@ -81,6 +103,7 @@ r.get("/", async (req, res) => {
       },
       orderBy: { createdAt: "desc" },
     });
+    // Filter announcements by semester if they have a semesters restriction
     const filtered = announcements.filter((a) => {
       if (!a.semesters) return true;
       return Array.isArray(a.semesters) && a.semesters.includes(dbUser.semester);
@@ -95,6 +118,10 @@ r.get("/", async (req, res) => {
   }
 });
 
+// --------------------------------------------------
+// PUT /:id – Update an announcement (teacher must own it)
+// Accepts partial updates: title, content, expiresAt, semesters, classId
+// --------------------------------------------------
 r.put("/:id", async (req, res) => {
   const { title, content, expiresAt, semesters, classId } = req.body;
   const existing = await prisma.announcement.findFirst({
@@ -115,6 +142,9 @@ r.put("/:id", async (req, res) => {
   res.json(ann);
 });
 
+// --------------------------------------------------
+// DELETE /:id – Delete an announcement (teacher must own it)
+// --------------------------------------------------
 r.delete("/:id", async (req, res) => {
   await prisma.announcement.deleteMany({
     where: { id: req.params.id, teacherId: req.user.id },

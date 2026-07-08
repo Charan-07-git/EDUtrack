@@ -4,17 +4,28 @@ import BackButton from '@/components/BackButton';
 import { api } from '@/lib/api';
 import { useEffect, useState } from 'react';
 
+// Page component: lets teachers create, view, and delete announcements for their classes
 export default function Page() {
+  // List of all announcements fetched from the API
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  // Form field: announcement title
   const [title, setTitle] = useState('');
+  // Form field: announcement content body
   const [content, setContent] = useState('');
+  // Form field: expiry duration in hours (default 24)
   const [expiresInHours, setExpiresInHours] = useState(24);
+  // Currently selected class/subject id from the dropdown
   const [selectedClassId, setSelectedClassId] = useState('');
+  // List of classes the teacher can post to
   const [classes, setClasses] = useState<any[]>([]);
+  // Whether the create-announcement POST is in progress
   const [loading, setLoading] = useState(false);
+  // Whether the initial data fetch is still happening
   const [fetching, setFetching] = useState(true);
+  // Stores any error message to display
   const [err, setErr] = useState('');
 
+  // On mount, fetch existing announcements and the teacher's class list in parallel
   useEffect(() => {
     Promise.all([
       api('/api/announcements'),
@@ -22,6 +33,7 @@ export default function Page() {
     ]).then(([anns, cls]) => {
       setAnnouncements(anns);
       setClasses(cls);
+      // Auto-select the first class if available
       if (cls.length > 0) setSelectedClassId(cls[0].id);
     }).catch((e) => {
       console.error('Failed to load announcements:', e);
@@ -29,16 +41,20 @@ export default function Page() {
     }).finally(() => setFetching(false));
   }, []);
 
+  // Handles form submission: sends a POST request to create a new announcement
   async function createAnnouncement(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedClassId) return;
     setLoading(true);
     try {
+      // POST /api/announcements with classId, title, content, and expiry
       const ann = await api('/api/announcements', {
         method: 'POST',
         body: JSON.stringify({ classId: selectedClassId, title, content, expiresInHours }),
       });
+      // Prepend the new announcement to the list
       setAnnouncements([ann, ...announcements]);
+      // Reset the form fields
       setTitle('');
       setContent('');
     } catch {
@@ -47,9 +63,12 @@ export default function Page() {
     setLoading(false);
   }
 
+  // Sends a DELETE request to remove an announcement by its id
   async function deleteAnnouncement(id: string) {
     try {
+      // DELETE /api/announcements/{id}
       await api(`/api/announcements/${id}`, { method: 'DELETE' });
+      // Remove the deleted announcement from the local list
       setAnnouncements(announcements.filter((a) => a.id !== id));
       setErr('');
     } catch {
@@ -63,22 +82,27 @@ export default function Page() {
 
       <div className="mt-6 max-w-3xl space-y-6">
         {fetching ? (
+          // Loading spinner while initial data is being fetched
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700 text-center py-16">
             <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
             <p className="mt-4 text-muted">Loading announcements...</p>
           </div>
         ) : err ? (
+          // Error state: display the error message in a red card
           <div className="card bg-red-50 border border-red-200 text-center py-8">
             <p className="text-red-600 font-medium">{err}</p>
           </div>
         ) : (
           <>
-          {/* Create Form */}
+          {/* Create Announcement form card */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-700" style={{ animation: 'fadeUp 0.4s ease-out' }}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Create Announcement</h3>
           <form onSubmit={createAnnouncement} className="space-y-4">
+            {/* Title text input */}
             <input type="text" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" required />
+            {/* Content textarea */}
             <textarea placeholder="Content" value={content} onChange={(e) => setContent(e.target.value)} rows={3} className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 resize-none" required />
+            {/* Expiry duration selector */}
             <div className="flex items-center gap-3">
               <label className="text-sm text-slate-600 dark:text-slate-400">Expires in:</label>
               <select value={expiresInHours} onChange={(e) => setExpiresInHours(Number(e.target.value))} className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-slate-50 dark:bg-slate-900">
@@ -88,6 +112,7 @@ export default function Page() {
                 <option value={168}>7 days</option>
               </select>
             </div>
+            {/* Target subject/class dropdown */}
             <div>
               <label className="text-sm text-slate-600 dark:text-slate-400 block mb-2">Target Subject:</label>
               <select
@@ -103,29 +128,34 @@ export default function Page() {
                 ))}
               </select>
             </div>
+            {/* Submit button */}
             <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50">
               Post Announcement
             </button>
           </form>
         </div>
 
-        {/* List */}
+        {/* Announcements list section */}
         <div className="space-y-3">
           {announcements.length === 0 ? (
+            // Empty state when no announcements exist
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-sm border border-slate-100 dark:border-slate-700">
               <span className="text-4xl block mb-3">📢</span>
               <p className="text-slate-500 dark:text-slate-400 font-medium">No announcements yet</p>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Create your first announcement above</p>
             </div>
           ) : announcements.map((a, i) => (
+            // Each announcement card with staggered slide-in animation
             <div key={a.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md dark:hover:shadow-slate-900 transition-all" style={{ animation: `slideIn 0.4s ease-out ${i * 80}ms both` }}>
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="font-bold text-slate-900 dark:text-white">{a.title}</h4>
                   <p className="text-sm text-slate-500 mt-1">{a.content}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">{new Date(a.createdAt).toLocaleString()}</p>
+                  {/* Badge showing which subject this announcement belongs to */}
                   {a.class && <span className="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">{a.class.subject}</span>}
                 </div>
+                {/* Delete button with trash icon */}
                 <button onClick={() => deleteAnnouncement(a.id)} className="text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors p-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -139,6 +169,7 @@ export default function Page() {
         )}
       </div>
 
+      {/* Keyframe animations used in this page */}
       <style>{`
         @keyframes slideIn {
           from { opacity: 0; transform: translateX(-20px); }

@@ -8,6 +8,10 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 
+// Tile configuration for the dashboard grid.
+// Each tile has: href (link target), gradient (CSS background),
+// label, icon (SVG), sub (optional subtitle), value (key to look up in API data).
+// Tiles with `value: null` only show text; ones with a string key show an animated counter.
 const tiles = [
   {
     href: '/teacher/today',
@@ -51,11 +55,19 @@ const tiles = [
   },
 ];
 
+// AnimatedCounter shows a number that counts up from 0 to `to` when it scrolls into view.
+// It uses IntersectionObserver to detect visibility, then runs a setInterval that increments
+// the displayed count in steps over ~800ms.
 function AnimatedCounter({ to, suffix = '' }: { to: number; suffix?: string }) {
+  // count: the current number displayed on screen (starts at 0 and climbs to `to`)
   const [count, setCount] = useState(0);
+  // ref: attached to the <span> so we can observe when it enters the viewport
   const ref = useRef<HTMLSpanElement>(null);
+  // visible: becomes true once the element is seen; starts the counting animation
   const [visible, setVisible] = useState(false);
 
+  // Set up an IntersectionObserver that flips `visible` to true when at least 30% of the element is in view.
+  // Once it fires, disconnect the observer since we only need to count once.
   useEffect(() => {
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
@@ -64,6 +76,7 @@ function AnimatedCounter({ to, suffix = '' }: { to: number; suffix?: string }) {
     return () => obs.disconnect();
   }, []);
 
+  // Once visible is true, start an interval that increments `count` from 0 to `to` in 20 steps over 800ms.
   useEffect(() => {
     if (!visible) return;
     const duration = 800;
@@ -81,34 +94,45 @@ function AnimatedCounter({ to, suffix = '' }: { to: number; suffix?: string }) {
   return <span ref={ref}>{count}{suffix}</span>;
 }
 
+// Teacher Dashboard page — the main landing page after a teacher logs in.
+// Shows a header with the teacher's profile and stats, plus a grid of navigation tiles.
 export default function Page() {
+  // d: dashboard data fetched from the API (contains classes, sessions, low attendance, etc.)
   const [d, setD] = useState<any>();
+  // user: authenticated teacher info from AuthContext; refreshUser: forces a fresh fetch of user data
   const { user, refreshUser } = useAuth();
+  // setupInfo: a formatted string like "Semester 4 • CS101" shown in the header
   const [setupInfo, setSetupInfo] = useState("");
 
+  // On mount, refresh the user info and fetch dashboard data from the backend.
   useEffect(() => {
     refreshUser();
     api('/api/teacher/dashboard').then(setD).catch(() => {});
   }, []);
 
+  // Whenever semester or facultyCode changes on the user object, build the setup info string.
   useEffect(() => {
     if (user?.semester) {
       setSetupInfo(`Semester ${user.semester}${user.facultyCode ? ` • ${user.facultyCode}` : ''}`);
     }
   }, [user?.semester, user?.facultyCode]);
 
+  // greeting: "Good morning / afternoon / evening" updated every minute.
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
+    // update sets the greeting based on the current hour.
     function update() {
       const hour = new Date().getHours();
       setGreeting(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening');
     }
     update();
+    // Re-check every 60 seconds so the greeting stays accurate.
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);
   }, []);
 
+  // header: the top profile card with the teacher's photo, name, greeting, role, and stats.
   const header = (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -116,14 +140,17 @@ export default function Page() {
       transition={{ duration: 0.5 }}
       className="relative overflow-hidden bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 rounded-2xl p-5 lg:p-7 mb-4 lg:mb-8 shadow-lg shadow-slate-900/20"
     >
+      {/* Decorative background circles */}
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5" />
       <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/5" />
       <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+        {/* Profile photo */}
         <div className="shrink-0">
           <div className="h-20 w-20 lg:h-24 lg:w-24 rounded-2xl overflow-hidden ring-4 ring-white/20 shadow-xl">
             <img src={user?.photoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23e2e8f0'/%3E%3Ccircle cx='50' cy='35' r='18' fill='%2394a3b8'/%3E%3Cpath d='M12 82c0-22 17-38 38-38s38 16 38 38' fill='%2394a3b8'/%3E%3C/svg%3E"} className="h-full w-full object-cover" alt="Profile" />
           </div>
         </div>
+        {/* Teacher info: greeting, name, designation, department */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
@@ -134,6 +161,7 @@ export default function Page() {
                 {user?.designation || 'Faculty'} &middot; {user?.name} &middot; {user?.department || 'Department'}
               </p>
             </div>
+            {/* Settings and notifications icon buttons */}
             <div className="flex items-center gap-2 shrink-0 ml-4">
               <Link href="/settings" className="p-2.5 rounded-xl bg-white/15 hover:bg-white/25 transition-all">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -151,6 +179,7 @@ export default function Page() {
               </Link>
             </div>
           </div>
+          {/* Info badges: setup (semester/faculty), class count, session count */}
           <div className="flex items-center gap-4 mt-3 flex-wrap">
             {setupInfo && (
               <div className="flex items-center gap-1.5 text-blue-100 text-xs bg-white/10 rounded-lg px-3 py-1.5">
@@ -158,6 +187,7 @@ export default function Page() {
                 {setupInfo}
               </div>
             )}
+            {/* Show total class count and total session count once dashboard data is loaded */}
             {d && (
               <>
                 <div className="flex items-center gap-1.5 text-blue-100 text-xs bg-white/10 rounded-lg px-3 py-1.5">
@@ -176,6 +206,8 @@ export default function Page() {
     </motion.div>
   );
 
+  // getValue extracts the display number for a tile by looking at the dashboard data.
+  // Called during rendering; returns a number for animated tiles or empty string otherwise.
   function getValue(tile: typeof tiles[0]): number | string {
     if (!d) return '';
     if (tile.value === 'classes') return d.classes.length;
@@ -185,9 +217,11 @@ export default function Page() {
 
   return (
     <Shell role="teacher" title="Teacher Dashboard" header={header}>
+      {/* Show a loader while dashboard data hasn't arrived yet */}
       {!d ? (
         <Loader />
       ) : (
+        /* Grid of navigation tiles with staggered entrance animation */
         <motion.div
           initial="hidden"
           animate="visible"
@@ -202,18 +236,23 @@ export default function Page() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
               }}
             >
+              {/* Each tile is a Link wrapping a gradient card */}
               <Link
                 href={t.href}
                 className={`relative rounded-2xl bg-gradient-to-br ${t.gradient} p-5 lg:p-8 min-h-[120px] lg:min-h-[160px] flex flex-col justify-between cursor-pointer hover:shadow-xl ${t.shadow} hover:-translate-y-1 transition-all duration-300 overflow-hidden group`}
               >
+                {/* Decorative background circles */}
                 <div className="absolute -bottom-4 -right-4 w-32 h-32 rounded-full bg-white/5" />
                 <div className="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-white/5" />
+                {/* Hover overlay */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-white/10 to-transparent" />
                 {t.icon}
+                {/* Label and optional subtitle */}
                 <div className="relative z-10">
                   <p className="text-white/90 text-sm lg:text-base font-semibold">{t.label}</p>
                   {t.sub && <p className="text-white/60 text-xs lg:text-sm mt-0.5">{t.sub}</p>}
                 </div>
+                {/* Counter value — uses AnimatedCounter if numeric, otherwise static text */}
                 <p className="relative z-10 text-white text-4xl lg:text-5xl font-extrabold">
                   {typeof getValue(t) === 'number' ? <AnimatedCounter to={getValue(t) as number} /> : (getValue(t) || '\u2014')}
                 </p>

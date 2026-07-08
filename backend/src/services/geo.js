@@ -1,5 +1,18 @@
+// ============================================================
+// Geo Service – calculates distance between two GPS coordinates
+// using the Haversine formula.
+// ============================================================
+
+// --------------------------------------------------
+// distanceMeters – Returns the great-circle distance in meters
+// between two latitude/longitude points on Earth.
+// Uses the Haversine formula:
+//   a = sin²(Δlat/2) + cos(lat1)·cos(lat2)·sin²(Δlng/2)
+//   c = 2 · atan2(√a, √(1-a))
+//   d = R · c   where R = Earth's radius (6,371,000 m)
+// --------------------------------------------------
 export function distanceMeters(aLat, aLng, bLat, bLng) {
-  const R = 6371000;
+  const R = 6371000; // Earth's radius in meters
   const toRad = (d) => (d * Math.PI) / 180;
 
   const dLat = toRad(bLat - aLat);

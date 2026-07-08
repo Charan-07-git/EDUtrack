@@ -1,3 +1,9 @@
+// ============================================================
+// Session Routes – session lifecycle: start, end, QR generation,
+// bulk attendance, and individual student mark-in.
+// All routes require JWT authentication.
+// ============================================================
+
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { auth } from "../middleware/auth.js";
@@ -7,6 +13,10 @@ import { distanceMeters } from "../services/geo.js";
 const r = Router();
 r.use(auth);
 
+// --------------------------------------------------
+// GET /:sessionId – Get a single session's details
+// Includes subject name, code, status, timetable, QR token + expiry
+// --------------------------------------------------
 r.get("/:sessionId", async (req, res) => {
   const s = await prisma.session.findUnique({
     where: { id: req.params.sessionId },
@@ -24,6 +34,10 @@ r.get("/:sessionId", async (req, res) => {
   });
 });
 
+// --------------------------------------------------
+// GET /archive – Teacher's ended sessions (historical archive)
+// Returns each session with subject, attendance count, start/end times
+// --------------------------------------------------
 r.get("/archive", async (req, res) => {
   const sessions = await prisma.session.findMany({
     where: { teacherId: req.user.id, status: "ENDED" },
@@ -41,6 +55,11 @@ r.get("/archive", async (req, res) => {
   })));
 });
 
+// --------------------------------------------------
+// GET /:sessionId/students – Get student list with attendance status
+// Shows all eligible students (by dept/semester or already marked)
+// and marks each as present/absent with timestamp + photo
+// --------------------------------------------------
 r.get("/:sessionId/students", async (req, res) => {
   const session = await prisma.session.findUnique({
     where: { id: req.params.sessionId },
@@ -75,6 +94,11 @@ r.get("/:sessionId/students", async (req, res) => {
   })));
 });
 
+// --------------------------------------------------
+// POST /:classId/start – Start a new session for a class
+// Validates that the teacher owns the class
+// Emits a real-time "session:update" event via Socket.IO
+// --------------------------------------------------
 r.post("/:classId/start", async (req, res) => {
   const cls = await prisma.class.findUnique({ where: { id: req.params.classId } });
   if (!cls || cls.teacherId !== req.user.id) {
@@ -92,6 +116,10 @@ r.post("/:classId/start", async (req, res) => {
   res.json(s);
 });
 
+// --------------------------------------------------
+// POST /:sessionId/end – End an active session
+// Sets status to ENDED and records endTime
+// --------------------------------------------------
 r.post("/:sessionId/end", async (req, res) => {
   const s = await prisma.session.update({
     where: { id: req.params.sessionId },
@@ -101,6 +129,11 @@ r.post("/:sessionId/end", async (req, res) => {
   res.json(s);
 });
 
+// --------------------------------------------------
+// POST /:sessionId/qr – Generate a QR code for attendance
+// Body: { teacherLat, teacherLng } (optional, for geo-location)
+// Creates a time-limited QR token (5 min) and stores teacher's location
+// --------------------------------------------------
 r.post("/:sessionId/qr", async (req, res) => {
   const { teacherLat, teacherLng } = req.body;
   const qr = await makeQr(req.params.sessionId);
@@ -117,6 +150,12 @@ r.post("/:sessionId/qr", async (req, res) => {
   res.json({ ...s, qrDataUrl: qr.dataUrl });
 });
 
+// --------------------------------------------------
+// POST /:sessionId/bulk-attendance – Mark multiple students at once
+// Body: { studentIds: string[] }
+// Creates new attendance records for selected students,
+// removes records for unselected students (deselection)
+// --------------------------------------------------
 r.post("/:sessionId/bulk-attendance", async (req, res) => {
   const { studentIds } = req.body;
   const existing = await prisma.attendance.findMany({
@@ -145,6 +184,9 @@ r.post("/:sessionId/bulk-attendance", async (req, res) => {
   res.json({ count, created: toCreate.length, removed: toRemove.count });
 });
 
+// --------------------------------------------------
+// GET /:sessionId/count – Get number of students marked present
+// --------------------------------------------------
 r.get("/:sessionId/count", async (req, res) => {
   const count = await prisma.attendance.count({
     where: { sessionId: req.params.sessionId },
@@ -152,9 +194,18 @@ r.get("/:sessionId/count", async (req, res) => {
   res.json({ count });
 });
 
+// --------------------------------------------------
+// POST /mark – Student marks their own attendance via QR scan
+// Body: { sessionId, token, lat, lng, photo }
+// Validates: QR exists, status is QR_ACTIVE, token matches, not expired
+// Geo-location: verifies student is within 3000m of teacher/campus
+// Uses upsert so re-scanning updates the existing record
+// Emits real-time "attendance:count" event to session room
+// --------------------------------------------------
 r.post("/mark", async (req, res) => {
   const { sessionId, token, lat, lng, photo } = req.body;
 
+  // Fetch session and validate QR token + expiry
   const s = await prisma.session.findUnique({
     where: { id: sessionId },
     include: { class: { select: { id: true, subject: true, code: true } } },
@@ -169,6 +220,7 @@ r.post("/mark", async (req, res) => {
     return res.status(400).json({ message: "QR expired or invalid" });
   }
 
+  // Verify student's location is within 3km of teacher's location or campus center
   let locationVerified = false;
   if (lat && lng) {
     const refLat = s.teacherLat ?? Number(process.env.CAMPUS_LAT);
@@ -182,6 +234,7 @@ r.post("/mark", async (req, res) => {
     select: { name: true, rollNumber: true },
   });
 
+  // Create or update attendance record (upsert prevents duplicates)
   const a = await prisma.attendance.upsert({
     where: { sessionId_studentId: { sessionId, studentId: req.user.id } },
     update: {
@@ -206,6 +259,7 @@ r.post("/mark", async (req, res) => {
     },
   });
 
+  // Emit updated count to all clients viewing this session
   const count = await prisma.attendance.count({ where: { sessionId } });
   req.app.get("io").to(sessionId).emit("attendance:count", { sessionId, count, attendanceId: a.id });
   res.json(a);
